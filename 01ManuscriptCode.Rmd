@@ -814,7 +814,7 @@ gbifSEAsiaFrogsOccDataCleaned %>%
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0("gbifSEAsiaFrogsOccDataCleaned_", date_stamp, ".csv")
+output_filename <- paste0(getwd(),"/standardised_occ_data/", "frogsOccDataStandardised_", date_stamp, ".csv")
 
 write_csv(gbifSEAsiaFrogsOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
@@ -1007,7 +1007,7 @@ gbifSEAsiaMammalOccDataCleaned %>%
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0("gbifSEAsiaMammalOccDataCleaned_", date_stamp, ".csv")
+output_filename <- paste0(getwd(),"/standardised_occ_data/", "mammalsOccDataStandardised_", date_stamp, ".csv")
 
 write_csv(gbifSEAsiaMammalOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
@@ -1189,7 +1189,7 @@ gbifSEAsiaBirdOccDataCleaned %>%
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0("gbifSEAsiaBirdOccDataCleaned_", date_stamp, ".csv")
+output_filename <- paste0(getwd(),"/standardised_occ_data/", "birdsOccDataStandardised_", date_stamp, ".csv")
 
 write_csv(gbifSEAsiaBirdOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
@@ -1371,7 +1371,7 @@ gbifSEAsiaSquamateOccDataCleaned %>%
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0("gbifSEAsiaSquamateOccDataCleaned_", date_stamp, ".csv")
+output_filename <- paste0(getwd(),"/standardised_occ_data/", "squamatesOccDataStandardised_", date_stamp, ".csv")
 
 write_csv(gbifSEAsiaSquamateOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
@@ -1553,7 +1553,7 @@ gbifSEAsiaPlantOccDataCleaned %>%
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0("gbifSEAsiaPlantOccDataCleaned_", date_stamp, ".csv")
+output_filename <- paste0(getwd(),"/standardised_occ_data/", "plantsOccDataStandardised_", date_stamp, ".csv")
 
 write_csv(gbifSEAsiaPlantOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
@@ -1570,7 +1570,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-frogSEAsiaOcc <- read_csv("gbifSEAsiaFrogsOccDataCleaned_20260103.csv")
+frogSEAsiaOcc <- read_csv("frogsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(frogSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1667,6 +1667,14 @@ cat("Original records:", nrow(frogSEAsiaOcc), "\n")
 cat("Final cleaned records:", nrow(frogSEAsiaOccData), "\n")
 cat("Total removed:", nrow(frogSEAsiaOcc) - nrow(frogSEAsiaOccData), "\n")
 cat("Retention rate:", round(nrow(frogSEAsiaOccData)/nrow(frogSEAsiaOcc)*100, 1), "%\n")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/cleaned_occ_data/", "frogsOccDataCleaned_", date_stamp, ".csv")
+
+write_csv(frogSEAsiaOccData, output_filename)
+cat("Dataset saved as:", output_filename, "\n")
+
 ```
 
 # Mammals
@@ -1677,7 +1685,7 @@ cat("Retention rate:", round(nrow(frogSEAsiaOccData)/nrow(frogSEAsiaOcc)*100, 1)
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-mammalSEAsiaOcc <- read_csv("gbifSEAsiaMammalOccDataCleaned_20260105.csv")
+mammalSEAsiaOcc <- read_csv("mammalsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(mammalSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1774,6 +1782,14 @@ cat("Original records:", nrow(mammalSEAsiaOcc), "\n")
 cat("Final cleaned records:", nrow(mammalSEAsiaOccData), "\n")
 cat("Total removed:", nrow(mammalSEAsiaOcc) - nrow(mammalSEAsiaOccData), "\n")
 cat("Retention rate:", round(nrow(mammalSEAsiaOccData)/nrow(mammalSEAsiaOcc)*100, 1), "%\n")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/cleaned_occ_data/", "mammalsOccDataCleaned_", date_stamp, ".csv")
+
+write_csv(mammalSEAsiaOccData, output_filename)
+cat("Dataset saved as:", output_filename, "\n")
+
 ```
 
 # Birds
@@ -1784,7 +1800,7 @@ cat("Retention rate:", round(nrow(mammalSEAsiaOccData)/nrow(mammalSEAsiaOcc)*100
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-birdSEAsiaOcc <- read_csv("gbifSEAsiaBirdOccDataCleaned_20260105.csv")
+birdSEAsiaOcc <- read_csv("birdsOccDataStandardised_20260105.csv")
 
 cat("Loaded dataset:", nrow(birdSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1881,6 +1897,14 @@ cat("Original records:", nrow(birdSEAsiaOcc), "\n")
 cat("Final cleaned records:", nrow(birdSEAsiaOccData), "\n")
 cat("Total removed:", nrow(birdSEAsiaOcc) - nrow(birdSEAsiaOccData), "\n")
 cat("Retention rate:", round(nrow(birdSEAsiaOccData)/nrow(birdSEAsiaOcc)*100, 1), "%\n")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/cleaned_occ_data/", "birdsOccDataCleaned_", date_stamp, ".csv")
+
+write_csv(birdSEAsiaOccData, output_filename)
+cat("Dataset saved as:", output_filename, "\n")
+
 ```
 
 # Squamates
@@ -1891,7 +1915,7 @@ cat("Retention rate:", round(nrow(birdSEAsiaOccData)/nrow(birdSEAsiaOcc)*100, 1)
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-squamateSEAsiaOcc <- read_csv("gbifSEAsiaSquamateOccDataCleaned_20260105.csv")
+squamateSEAsiaOcc <- read_csv("squamatesOccDataStandardised_20260105.csv")
 
 cat("Loaded dataset:", nrow(squamateSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1988,6 +2012,14 @@ cat("Original records:", nrow(squamateSEAsiaOcc), "\n")
 cat("Final cleaned records:", nrow(squamateSEAsiaOccData), "\n")
 cat("Total removed:", nrow(squamateSEAsiaOcc) - nrow(squamateSEAsiaOccData), "\n")
 cat("Retention rate:", round(nrow(squamateSEAsiaOccData)/nrow(squamateSEAsiaOcc)*100, 1), "%\n")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/cleaned_occ_data/", "squamatesOccDataCleaned_", date_stamp, ".csv")
+
+write_csv(squamatesSEAsiaOccData, output_filename)
+cat("Dataset saved as:", output_filename, "\n")
+
 ```
 
 # Vascular plants
@@ -1998,7 +2030,7 @@ cat("Retention rate:", round(nrow(squamateSEAsiaOccData)/nrow(squamateSEAsiaOcc)
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-plantSEAsiaOcc <- read_csv("gbifSEAsiaPlantOccDataCleaned_20260105.csv")
+plantSEAsiaOcc <- read_csv("plantsOccDataStandardised_20260105.csv")
 
 cat("Loaded dataset:", nrow(plantSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -2095,6 +2127,14 @@ cat("Original records:", nrow(plantSEAsiaOcc), "\n")
 cat("Final cleaned records:", nrow(plantSEAsiaOccData), "\n")
 cat("Total removed:", nrow(plantSEAsiaOcc) - nrow(plantSEAsiaOccData), "\n")
 cat("Retention rate:", round(nrow(plantSEAsiaOccData)/nrow(plantSEAsiaOcc)*100, 1), "%\n")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/cleaned_occ_data/", "plantsOccDataCleaned_", date_stamp, ".csv")
+
+write_csv(plantSEAsiaOccData, output_filename)
+cat("Dataset saved as:", output_filename, "\n")
+
 ```
 
 
