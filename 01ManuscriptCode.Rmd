@@ -1570,7 +1570,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-frogSEAsiaOcc <- read_csv("frogsOccDataStandardised_20260108.csv")
+frogSEAsiaOcc <- read_csv("standardised_occ_data/frogsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(frogSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1685,7 +1685,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-mammalSEAsiaOcc <- read_csv("mammalsOccDataStandardised_20260108.csv")
+mammalSEAsiaOcc <- read_csv("standardised_occ_data/mammalsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(mammalSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1800,7 +1800,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-birdSEAsiaOcc <- read_csv("birdsOccDataStandardised_20260105.csv")
+birdSEAsiaOcc <- read_csv("standardised_occ_data/birdsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(birdSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -1915,7 +1915,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-squamateSEAsiaOcc <- read_csv("squamatesOccDataStandardised_20260105.csv")
+squamateSEAsiaOcc <- read_csv("standardised_occ_data/squamatesOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(squamateSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
@@ -2017,7 +2017,7 @@ cat("Retention rate:", round(nrow(squamateSEAsiaOccData)/nrow(squamateSEAsiaOcc)
 date_stamp <- format(Sys.Date(), "%Y%m%d")
 output_filename <- paste0(getwd(),"/cleaned_occ_data/", "squamatesOccDataCleaned_", date_stamp, ".csv")
 
-write_csv(squamatesSEAsiaOccData, output_filename)
+write_csv(squamateSEAsiaOccData, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
 
 ```
@@ -2030,7 +2030,7 @@ cat("Dataset saved as:", output_filename, "\n")
 # Load raw occurrence data ----
 # Import the combined raw dataset from GBIF download script
 cat("Loading raw occurrence data...\n")
-plantSEAsiaOcc <- read_csv("plantsOccDataStandardised_20260105.csv")
+plantSEAsiaOcc <- read_csv("standardised_occ_data/plantsOccDataStandardised_20260108.csv")
 
 cat("Loaded dataset:", nrow(plantSEAsiaOcc), "records\n")
 #cat("Sources:", paste(unique(combined_occurrences$source), collapse = ", "), "\n")
