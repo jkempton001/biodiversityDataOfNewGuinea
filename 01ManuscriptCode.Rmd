@@ -12,6 +12,7 @@ library(dplyr)
 library(ggplot2)
 library(scico)
 library(rnaturalearth)
+library(rnaturalearthhires)
 library(purrr)
 library(smoothr)
 library(readr)
@@ -2101,8 +2102,8 @@ cat("Retention rate:", round(nrow(plantSEAsiaOccData)/nrow(plantSEAsiaOcc)*100, 
 ## PLOTTING
 
 # Fig. 1: Heatmaps of occurrence data
+# Frogs
 ```{r}
-## Frogs
 
 # species and lat long data
 frogSEAsiaCollXY <- frogSEAsiaOccData %>%
@@ -2278,6 +2279,11 @@ density_table <- counts %>%
   left_join(areas, by = "Region") %>%
   mutate(Density = Observations / Area_km2)
 
+```
+
+# Mammals
+
+```{r}
 ## Mammals
 
 # species and lat long data
@@ -2453,6 +2459,11 @@ density_table <- counts %>%
   left_join(areas, by = "Region") %>%
   mutate(Density = Observations / Area_km2)
 
+```
+
+# Birds
+
+```{r}
 ## Birds
 
 
@@ -2650,6 +2661,11 @@ density_table <- counts %>%
   left_join(areas, by = "Region") %>%
   mutate(Density = Observations / Area_km2)
 
+```
+
+# Squamates
+
+```{r}
 ## SQUAMATES
 
 
@@ -2843,6 +2859,11 @@ density_table <- counts %>%
   left_join(areas, by = "Region") %>%
   mutate(Density = Observations / Area_km2)
 
+```
+
+# Vascular plants
+
+```{r}
 ## VASCULAR PLANTS
 
 # species and lat long data
@@ -3042,9 +3063,10 @@ density_table <- counts %>%
 
 ```
 # Fig. 2 Heatmaps of Alpha Diversity 
-```{r}
 
-## FROGS
+# Frogs
+
+```{r}
 
 frogSEAsiaCollSF <- st_as_sf(frogSEAsiaCollXY, coords = c("long", "lat"), crs = 4326)
 # no group_by / summarize here
@@ -3118,7 +3140,11 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
-## MAMMALS
+```
+
+# Mammals
+
+```{r}
 
 mammalSEAsiaCollSF <- st_as_sf(mammalSEAsiaCollXY, coords = c("long", "lat"), crs = 4326)
 # no group_by / summarize here
@@ -3195,7 +3221,11 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
-## BIRDS
+```
+
+# Birds
+
+```{r}
 
 birdSEAsiaCollSF <- st_as_sf(birdSEAsiaCollXY, coords = c("long", "lat"), crs = 4326)
 # no group_by / summarize here
@@ -3272,7 +3302,11 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
-## SQUAMATES
+```
+
+# Squamates
+
+```{r}
 
 squamateSEAsiaCollSF <- st_as_sf(squamateSEAsiaCollXY, coords = c("long", "lat"), crs = 4326)
 # no group_by / summarize here
@@ -3349,7 +3383,11 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
-## VASCULAR PLANTS
+```
+
+# Vascular plants
+
+```{r}
 
 plantSEAsiaCollSF <- st_as_sf(plantSEAsiaCollXY, coords = c("long", "lat"), crs = 4326)
 # no group_by / summarize here
@@ -3426,10 +3464,163 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
+```
 
+
+# Fig 3: Bivariate choropleth rasters
+
+# Frogs
+
+```{r}
+
+fr_bi_grid <- frogsCollRaster_binned %>%
+  mutate(alpha = frogsAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+fr_bi_grid <- fr_bi_grid %>%
+  mutate(
+    # --- collections classes ---
+    numCollectionsLab = case_when(
+      numCollections == 0                      ~ 0L,
+      numCollections >= 1   & numCollections <= 100 ~ 1L,
+      numCollections >= 101 & numCollections <= 200 ~ 2L,
+      numCollections > 200                      ~ 3L,
+      TRUE ~ NA_integer_
+    ),
+
+    # --- richness (alpha) classes ---
+    alphaLab = case_when(
+      alpha == 0                     ~ 0L,
+      alpha >= 1  & alpha <= 20      ~ 1L,
+      alpha >= 21 & alpha <= 40      ~ 2L,
+      alpha > 40                     ~ 3L,
+      TRUE ~ NA_integer_
+    ),
+
+    # --- bivariate code ---
+    jointLab = case_when(
+      is.na(numCollectionsLab) | is.na(alphaLab) ~ NA_character_,
+      TRUE ~ paste0(numCollectionsLab, "-", alphaLab)
+    )
+  )
+
+fr_bi_grid <- fr_bi_grid %>%
+  mutate(
+    jointLab_plot = if_else(jointLab == "0-0", NA_character_, jointLab)
+  )
+
+bi_pal_3x3 <- c(
+  "1-1" = "#7A7A7A", "1-2" = "#B59B3A", "1-3" = "#FFD200",
+  "2-1" = "#B0B0B0", "2-2" = "#D8C98A", "2-3" = "#FFE680",
+  "3-1" = "#E6E6E6", "3-2" = "#F2EBCB", "3-3" = "#FFF4B3"
+)
+
+p <- ggplot() +
+  # bivariate grid
+  geom_sf(data = fr_bi_grid, aes(fill = jointLab), color = NA) +
+  # outline on top
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_manual(values = bi_pal_3x3, na.value = "black") +
+  coord_sf(datum = NA) +
+  theme_void() +
+  theme(
+    legend.position = "none"
+  )
+
+```
+
+
+
+# Fig 4: Protected areas of New Guinea
+
+```{r}
+
+## Create Region mask
+
+# Countries (Papua New Guinea only)
+countries <- ne_countries(scale = "large", returnclass = "sf")
+
+png <- countries %>%
+  filter(name == "Papua New Guinea")
+
+# Indonesian provinces
+states <- ne_states(country = "Indonesia",
+                    returnclass = "sf")
+
+papua_id <- states %>%
+  filter(name %in% c("Papua", "Papua Barat"))
+
+png2 <- png %>%
+  transmute(
+    unit = name,          # "Papua New Guinea"
+    geom = geometry
+  ) %>%
+  st_as_sf()
+
+papua2 <- papua_id %>%
+  transmute(
+    unit = name,          # "Papua", "Papua Barat"
+    geom = geometry
+  ) %>%
+  st_as_sf()
+
+new_guinea <- bind_rows(
+  st_make_valid(png2),
+  st_make_valid(papua2)
+)
+
+
+# (Optional) dissolve borders into a single polygon
+ng <- new_guinea %>%
+  st_union()
+
+
+regionPoly <- ng |> st_make_valid()
+
+## Import shapefiles
+
+pa_dir <- "/protected_areas"  
+
+pa_files <- c(
+  "shp0_polygons_png.shp",
+  "shp1_polygons_png.shp",
+  "shp2_polygons_png.shp",
+  "shp0_polygons_indonesia.shp",
+  "shp1_polygons_indonesia.shp",
+  "shp2_polygons_indonesia.shp"
+)
+
+pa_paths <- file.path(getwd(),pa_dir, pa_files)
+
+pa_list <- map(pa_paths, ~ st_read(.x, quiet = TRUE))
+
+# pick a target CRS (use your region polygon CRS, or force WGS84)
+target_crs <- st_crs(regionPoly)  # or st_crs(4326)
+
+pa_merged <- pa_list %>%
+  map(~ st_make_valid(.x)) %>%
+  map(~ st_transform(.x, target_crs)) %>%
+  reduce(bind_rows)
+
+pa_ng <- pa_merged %>%
+  st_make_valid() %>%
+  st_filter(regionPoly) %>%          # keeps only features that touch regionPoly
+  st_intersection(regionPoly)        # actually clips to the boundary
+
+ggplot() +
+  geom_sf(data = regionPoly, fill = "black", color = "black", linewidth = 0.4) +
+  geom_sf(data = pa_ng, fill = "NA", color = "white", alpha = 0.6) +
+  coord_sf(expand = FALSE) +
+  theme_minimal() #+
+  #labs(
+    #title = "Protected areas on New Guinea",
+    #subtitle = "Papua New Guinea + Indonesian provinces (Papua, Papua Barat)",
+    #fill = "Protected areas"
+  #)
 
 
 ```
+
 # Fig S1: Raw cleaned occurrence data
 ```{r}
 
@@ -3557,12 +3748,13 @@ plantPointMap <-
   
 ```
 
+
+
 ## STATS
 
 # Test for spatial randomness
+# Birds
 ```{r}
-
-## BIRDS
 
 # Study area
 mask_sf <- st_read("PNGIDP.shp")
@@ -3615,7 +3807,11 @@ qt_mc <- quadrat.test(
 )
 qt_mc
 
-## SQUAMATES
+```
+
+# Squamates
+
+```{r}
 
 # Study area
 mask_sf <- st_read("PNGIDP.shp")
@@ -3668,7 +3864,11 @@ qt_mc <- quadrat.test(
 )
 qt_mc
 
-## VASCULAR PLANTS
+```
+
+# Vascular plants
+
+```{r}
 
 # Study area
 mask_sf <- st_read("PNGIDP.shp")
