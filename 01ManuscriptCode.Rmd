@@ -28,6 +28,10 @@ library(geodata)
 library(spatstat)
 library(spatstat.geom)
 library(spatstat.explore)
+library(scales)
+library(colorspace)
+library(patchwork)
+library(cowplot)
 
 
 
@@ -3568,9 +3572,334 @@ p <- ggplot() +
 
 ```
 
+# Fig 4: Bivariate choropleth heatmaps
+
+# Frogs
+
+```{r}
+
+fr_bi_grid <- frogsCollRaster_binned %>%
+  mutate(alpha = frogsAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+# maxima
+max_collections <- max(fr_bi_grid$numCollections, na.rm = TRUE)
+max_alpha       <- max(fr_bi_grid$alpha, na.rm = TRUE)
 
 
-# Fig 4: Protected areas of New Guinea
+fr_cont <- fr_bi_grid %>%
+  mutate(
+    # scale to [0,1] by max (guard against max == 0)
+    coll01  = numCollections / max_collections,
+    alpha01 = alpha / max_alpha,
+
+    # clamp
+    coll01  = pmin(pmax(coll01, 0), 1),
+    alpha01 = pmin(pmax(alpha01, 0), 1),
+
+    # RGB mapping: R = richness, B = collections, G = 0
+    fill = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+p <- ggplot() +
+  geom_sf(data = fr_cont, aes(fill = fill), color = NA) +
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_identity(na.value = "black") +
+  coord_sf() 
+
+# ---- Continuous 2D legend (exact same rule) ----
+legend_dim <- 250
+
+leg_df <- expand_grid(
+  coll01  = seq(0, 1, length.out = legend_dim),   # x-axis: collections
+  alpha01 = seq(0, 1, length.out = legend_dim)    # y-axis: richness
+) %>%
+  mutate(
+    fill    = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+legend_plot <- ggplot(leg_df, aes(x = coll01, y = alpha01, fill = fill)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_identity() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.margin = margin(2, 2, 2, 2)
+  )
+
+final_plot <- ggdraw() +
+  draw_plot(p, 0, 0, 1, 1) +
+  draw_plot(
+    legend_plot,
+    x = 0.15,   # distance from left (0–1)
+    y = 0.35,   # distance from bottom (0–1)
+    width  = 0.1,
+    height = 0.1
+  )
+
+```
+
+# Mammals
+
+```{r}
+
+mammals_bi_grid <- mammalCollRaster_binned %>%
+  mutate(alpha = mammalAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+# maxima
+max_collections <- max(mammals_bi_grid$numCollections, na.rm = TRUE)
+max_alpha       <- max(mammals_bi_grid$alpha, na.rm = TRUE)
+
+
+mammals_cont <- mammals_bi_grid %>%
+  mutate(
+    # scale to [0,1] by max (guard against max == 0)
+    coll01  = numCollections / max_collections,
+    alpha01 = alpha / max_alpha,
+
+    # clamp
+    coll01  = pmin(pmax(coll01, 0), 1),
+    alpha01 = pmin(pmax(alpha01, 0), 1),
+
+    # RGB mapping: R = richness, B = collections, G = 0
+    fill = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+p <- ggplot() +
+  geom_sf(data = mammals_cont, aes(fill = fill), color = NA) +
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_identity(na.value = "black") +
+  coord_sf() 
+
+# ---- Continuous 2D legend (exact same rule) ----
+legend_dim <- 250
+
+leg_df <- expand_grid(
+  coll01  = seq(0, 1, length.out = legend_dim),   # x-axis: collections
+  alpha01 = seq(0, 1, length.out = legend_dim)    # y-axis: richness
+) %>%
+  mutate(
+    fill    = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+legend_plot <- ggplot(leg_df, aes(x = coll01, y = alpha01, fill = fill)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_identity() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.margin = margin(2, 2, 2, 2)
+  )
+
+final_plot <- ggdraw() +
+  draw_plot(p, 0, 0, 1, 1) +
+  draw_plot(
+    legend_plot,
+    x = 0.15,   # distance from left (0–1)
+    y = 0.35,   # distance from bottom (0–1)
+    width  = 0.1,
+    height = 0.1
+  )
+
+```
+
+# Birds
+
+```{r}
+
+birds_bi_grid <- birdCollRaster_binned %>%
+  mutate(alpha = birdAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+# maxima
+max_collections <- max(birds_bi_grid$numCollections, na.rm = TRUE)
+max_alpha       <- max(birds_bi_grid$alpha, na.rm = TRUE)
+
+
+birds_cont <- birds_bi_grid %>%
+  mutate(
+    # scale to [0,1] by max (guard against max == 0)
+    coll01  = numCollections / max_collections,
+    alpha01 = alpha / max_alpha,
+
+    # clamp
+    coll01  = pmin(pmax(coll01, 0), 1),
+    alpha01 = pmin(pmax(alpha01, 0), 1),
+
+    # RGB mapping: R = richness, B = collections, G = 0
+    fill = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+p <- ggplot() +
+  geom_sf(data = birds_cont, aes(fill = fill), color = NA) +
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_identity(na.value = "black") +
+  coord_sf() 
+
+# ---- Continuous 2D legend (exact same rule) ----
+legend_dim <- 250
+
+leg_df <- expand_grid(
+  coll01  = seq(0, 1, length.out = legend_dim),   # x-axis: collections
+  alpha01 = seq(0, 1, length.out = legend_dim)    # y-axis: richness
+) %>%
+  mutate(
+    fill    = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+legend_plot <- ggplot(leg_df, aes(x = coll01, y = alpha01, fill = fill)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_identity() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.margin = margin(2, 2, 2, 2)
+  )
+
+final_plot <- ggdraw() +
+  draw_plot(p, 0, 0, 1, 1) +
+  draw_plot(
+    legend_plot,
+    x = 0.15,   # distance from left (0–1)
+    y = 0.35,   # distance from bottom (0–1)
+    width  = 0.1,
+    height = 0.1
+  )
+
+```
+
+# Squamates
+
+```{r}
+
+squamates_bi_grid <- squamateCollRaster_binned %>%
+  mutate(alpha = squamateAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+# maxima
+max_collections <- max(squamates_bi_grid$numCollections, na.rm = TRUE)
+max_alpha       <- max(squamates_bi_grid$alpha, na.rm = TRUE)
+
+
+squamates_cont <- squamates_bi_grid %>%
+  mutate(
+    # scale to [0,1] by max (guard against max == 0)
+    coll01  = numCollections / max_collections,
+    alpha01 = alpha / max_alpha,
+
+    # clamp
+    coll01  = pmin(pmax(coll01, 0), 1),
+    alpha01 = pmin(pmax(alpha01, 0), 1),
+
+    # RGB mapping: R = richness, B = collections, G = 0
+    fill = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+p <- ggplot() +
+  geom_sf(data = squamates_cont, aes(fill = fill), color = NA) +
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_identity(na.value = "black") +
+  coord_sf() 
+
+# ---- Continuous 2D legend (exact same rule) ----
+legend_dim <- 250
+
+leg_df <- expand_grid(
+  coll01  = seq(0, 1, length.out = legend_dim),   # x-axis: collections
+  alpha01 = seq(0, 1, length.out = legend_dim)    # y-axis: richness
+) %>%
+  mutate(
+    fill    = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+legend_plot <- ggplot(leg_df, aes(x = coll01, y = alpha01, fill = fill)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_identity() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.margin = margin(2, 2, 2, 2)
+  )
+
+final_plot <- ggdraw() +
+  draw_plot(p, 0, 0, 1, 1) +
+  draw_plot(
+    legend_plot,
+    x = 0.15,   # distance from left (0–1)
+    y = 0.35,   # distance from bottom (0–1)
+    width  = 0.1,
+    height = 0.1
+  )
+
+```
+
+# Vascular plants
+
+```{r}
+
+plants_bi_grid <- plantCollRaster_binned %>%
+  mutate(alpha = plantAlphaBinned[[2]], .before = 3) %>%
+  select(-5)
+
+# maxima
+max_collections <- max(plants_bi_grid$numCollections, na.rm = TRUE)
+max_alpha       <- max(plants_bi_grid$alpha, na.rm = TRUE)
+
+
+plants_cont <- plants_bi_grid %>%
+  mutate(
+    # scale to [0,1] by max (guard against max == 0)
+    coll01  = numCollections / max_collections,
+    alpha01 = alpha / max_alpha,
+
+    # clamp
+    coll01  = pmin(pmax(coll01, 0), 1),
+    alpha01 = pmin(pmax(alpha01, 0), 1),
+
+    # RGB mapping: R = richness, B = collections, G = 0
+    fill = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+p <- ggplot() +
+  geom_sf(data = plants_cont, aes(fill = fill), color = NA) +
+  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
+  scale_fill_identity(na.value = "black") +
+  coord_sf() 
+
+# ---- Continuous 2D legend (exact same rule) ----
+legend_dim <- 250
+
+leg_df <- expand_grid(
+  coll01  = seq(0, 1, length.out = legend_dim),   # x-axis: collections
+  alpha01 = seq(0, 1, length.out = legend_dim)    # y-axis: richness
+) %>%
+  mutate(
+    fill    = grDevices::rgb(alpha01, 0, coll01)
+  )
+
+legend_plot <- ggplot(leg_df, aes(x = coll01, y = alpha01, fill = fill)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_identity() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.margin = margin(2, 2, 2, 2)
+  )
+
+final_plot <- ggdraw() +
+  draw_plot(p, 0, 0, 1, 1) +
+  draw_plot(
+    legend_plot,
+    x = 0.15,   # distance from left (0–1)
+    y = 0.35,   # distance from bottom (0–1)
+    width  = 0.1,
+    height = 0.1
+  )
+
+```
+
+# Fig 5: Protected areas of New Guinea
 
 ```{r}
 
