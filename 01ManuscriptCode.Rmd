@@ -1,4 +1,4 @@
-# Libraries
+# LIBRARIES
 ```{r}
 
 # Open libraries
@@ -38,10 +38,70 @@ library(cowplot)
 
 ```
 
-## DOWNLOAD DATA
+# PLOTTING PREREQUISITES
+
+## Pre-requisites
+
+```{r}
+
+## Create New Guinea map ----
+
+# Countries (Papua New Guinea only)
+countries <- ne_countries(scale = "large", returnclass = "sf")
+
+png <- countries %>%
+  filter(name == "Papua New Guinea")
+
+# Indonesian provinces
+states <- ne_states(country = "Indonesia",
+                    returnclass = "sf")
+
+papua_id <- states %>%
+  filter(name %in% c("Papua", "Papua Barat"))
+
+png2 <- png %>%
+  transmute(
+    unit = name,          # "Papua New Guinea"
+    geom = geometry
+  ) %>%
+  st_as_sf()
+
+papua2 <- papua_id %>%
+  transmute(
+    unit = name,          # "Papua", "Papua Barat"
+    geom = geometry
+  ) %>%
+  st_as_sf()
+
+new_guinea <- bind_rows(
+  st_make_valid(png2),
+  st_make_valid(papua2)
+)
 
 
-# Frogs
+# (Optional) dissolve borders into a single polygon
+ng <- new_guinea %>%
+  st_union()
+
+# Final map
+regionPoly <- ng |> st_make_valid()
+
+## Gridded map for rasterisation purposes ----
+
+regionGrid <- regionPoly |>
+  st_make_grid(cellsize = 0.3, what = "polygons") |>
+  st_intersection(regionPoly) |>
+  st_collection_extract("POLYGON") |>
+  st_make_valid() |>
+  st_sf() |>
+  dplyr::mutate(cellid = dplyr::row_number())
+
+
+```
+
+# DOWNLOAD DATA
+
+## Frogs
 
 ```{r}
 
@@ -164,7 +224,7 @@ check_download_status <- function(download_keys) {
 check_download_status(download_keys)
 ```
 
-# Mammals
+## Mammals
 
 ```{r}
 
@@ -284,7 +344,7 @@ check_download_status <- function(download_keys) {
 check_download_status(download_keys)
 ```
 
-# Birds
+## Birds
 
 ```{r}
 
@@ -402,7 +462,7 @@ check_download_status <- function(download_keys) {
 check_download_status(download_keys)
 ```
 
-# Squamates
+## Squamates
 
 ```{r}
 
@@ -520,7 +580,7 @@ check_download_status <- function(download_keys) {
 check_download_status(download_keys)
 ```
 
-# Vascular plants
+## Vascular plants
 
 ```{r}
 
@@ -640,9 +700,9 @@ check_download_status(download_keys)
 ```
 
 
-## IMPORT DATA
+# IMPORT DATA
 
-# Frogs
+## Frogs
 
 ```{r}
 # Import downloaded data ----
@@ -824,7 +884,7 @@ write_csv(gbifSEAsiaFrogsOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
 ```
 
-# Mammals
+## Mammals
 
 ```{r}
 # Import downloaded data ----
@@ -1017,7 +1077,7 @@ write_csv(gbifSEAsiaMammalOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
 ```
 
-# Birds
+## Birds
 
 ```{r}
 # Import downloaded data ----
@@ -1199,7 +1259,7 @@ write_csv(gbifSEAsiaBirdOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
 ```
 
-# Squamates
+## Squamates
 
 ```{R}
 # Import downloaded data ----
@@ -1381,7 +1441,7 @@ write_csv(gbifSEAsiaSquamateOccDataCleaned, output_filename)
 cat("Dataset saved as:", output_filename, "\n")
 ```
 
-# Vascualar plants
+## Vascular plants
 
 ```{R}
 # Import downloaded data ----
@@ -1564,9 +1624,9 @@ cat("Dataset saved as:", output_filename, "\n")
 ```
 
 
-## CLEAN DATASET
+# CLEAN DATASET
 
-# Frogs
+## Frogs
 
 ```{r}
 # Specimen collection raster #
@@ -1681,7 +1741,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```
 
-# Mammals
+## Mammals
 
 ```{r}
 # Specimen collection raster #
@@ -1796,7 +1856,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```
 
-# Birds
+## Birds
 
 ```{r}
 # Specimen collection raster #
@@ -1911,7 +1971,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```
 
-# Squamates
+## Squamates
 
 ```{r}
 # Specimen collection raster #
@@ -2026,7 +2086,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```
 
-# Vascular plants
+## Vascular plants
 
 ```{r}
 # Specimen collection raster #
@@ -2142,11 +2202,17 @@ cat("Dataset saved as:", output_filename, "\n")
 ```
 
 
-## PLOTTING
+# PROCESS DATASETS
 
-# Fig. 1: Heatmaps of occurrence data
-# Frogs
+## Frogs
+
 ```{r}
+
+# Load cleaned occurrence data ----
+cat("Loading cleaned occurrence data...\n")
+frogSEAsiaOccData <- read_csv("cleaned_occ_data/frogsOccDatacleaned_20260108.csv")
+
+cat("Loaded dataset:", nrow(frogSEAsiaOccData), "records\n")
 
 # species and lat long data
 frogSEAsiaCollXY <- frogSEAsiaOccData %>%
@@ -2160,71 +2226,6 @@ frogSEAsiaCollSF <- st_as_sf(frogSEAsiaCollXY, coords = c("long", "lat"), crs = 
   group_by(id) %>%
   summarize()
 
-# ------------------------------------------------------------------------------
-# 4) Plot
-# ------------------------------------------------------------------------------
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-
-regionPoly <- ng |> st_make_valid()
-
-regionGrid <- regionPoly |>
-  st_make_grid(cellsize = 0.3, what = "polygons") |>
-  st_intersection(regionPoly) |>
-  st_collection_extract("POLYGON") |>
-  st_make_valid() |>
-  st_sf() |>
-  dplyr::mutate(cellid = dplyr::row_number())
-
-gridPlot <-
-  ggplot() +
-  geom_sf(data = regionPoly) +
-  geom_sf(data = regionGrid) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-gridPlot
-
 frogSEAsiaCollSF <- frogSEAsiaCollSF |> st_make_valid()
 
 frogsCollRaster <- regionGrid |>
@@ -2232,6 +2233,180 @@ frogsCollRaster <- regionGrid |>
   dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
   dplyr::group_by(cellid) |>
   dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/input_dataframes/", "frogsData_", date_stamp, ".RData")
+#saveRDS(frogsCollRaster,
+        #file = output_filename)
+save(frogSEAsiaOccData, frogSEAsiaCollXY, frogSEAsiaCollSF, frogsCollRaster, file = output_filename)
+
+cat("Dataset saved as:", output_filename, "\n")
+
+
+```
+
+
+## Mammals
+
+```{r}
+
+# Load cleaned occurrence data ----
+cat("Loading cleaned occurrence data...\n")
+mammalSEAsiaOccData <- read_csv("cleaned_occ_data/mammalsOccDatacleaned_20260108.csv")
+
+cat("Loaded dataset:", nrow(mammalSEAsiaOccData), "records\n")
+
+# species and lat long data
+mammalSEAsiaCollXY <- mammalSEAsiaOccData %>%
+  select(gen, sp, long, lat) %>%
+  na.omit()
+
+mammalSEAsiaCollXY <- mammalSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
+
+# to sf object, specifying variables with coordinates and projection
+mammalSEAsiaCollSF <- st_as_sf(mammalSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarize()
+
+mammalSEAsiaCollSF <- mammalSEAsiaCollSF |> st_make_valid()
+
+mammalCollRaster <- regionGrid |>
+  st_join(mammalSEAsiaCollSF, join = st_intersects) |>
+  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
+  dplyr::group_by(cellid) |>
+  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/input_dataframes/", "mammalsData_", date_stamp, ".RData")
+save(mammalSEAsiaOccData, mammalSEAsiaCollXY, mammalSEAsiaCollSF, mammalCollRaster, file = output_filename)
+
+cat("Dataset saved as:", output_filename, "\n")
+
+```
+
+## Birds
+
+```{r}
+
+# Load cleaned occurrence data ----
+cat("Loading cleaned occurrence data...\n")
+birdSEAsiaOccData <- read_csv("cleaned_occ_data/birdsOccDatacleaned_20260108.csv")
+
+# species and lat long data
+birdSEAsiaCollXY <- birdSEAsiaOccData %>%
+  select(gen, sp, long, lat) %>%
+  na.omit()
+
+birdSEAsiaCollXY <- birdSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
+
+# to sf object, specifying variables with coordinates and projection
+birdSEAsiaCollSF <- st_as_sf(birdSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarize()
+
+birdSEAsiaCollSF <- birdSEAsiaCollSF |> st_make_valid()
+
+birdCollRaster <- regionGrid |>
+  st_join(birdSEAsiaCollSF, join = st_intersects) |>
+  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
+  dplyr::group_by(cellid) |>
+  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/input_dataframes/", "birdsData_", date_stamp, ".RData")
+save(birdSEAsiaOccData, birdSEAsiaCollXY, birdSEAsiaCollSF, birdCollRaster, file = output_filename)
+
+cat("Dataset saved as:", output_filename, "\n")
+
+```
+
+## Squamates
+
+```{r}
+# Load cleaned occurrence data ----
+cat("Loading cleaned occurrence data...\n")
+squamateSEAsiaOccData <- read_csv("cleaned_occ_data/squamatesOccDatacleaned_20260108.csv")
+
+# species and lat long data
+squamateSEAsiaCollXY <- squamateSEAsiaOccData %>%
+  select(gen, sp, long, lat) %>%
+  na.omit()
+
+squamateSEAsiaCollXY <- squamateSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
+
+# to sf object, specifying variables with coordinates and projection
+squamateSEAsiaCollSF <- st_as_sf(squamateSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarize()
+
+squamateSEAsiaCollSF <- squamateSEAsiaCollSF |> st_make_valid()
+
+squamateCollRaster <- regionGrid |>
+  st_join(squamateSEAsiaCollSF, join = st_intersects) |>
+  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
+  dplyr::group_by(cellid) |>
+  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/input_dataframes/", "squamatesData_", date_stamp, ".RData")
+save(squamateSEAsiaOccData, squamateSEAsiaCollXY, squamateSEAsiaCollSF, squamateCollRaster, file = output_filename)
+
+cat("Dataset saved as:", output_filename, "\n")
+
+
+```
+
+## Plants
+
+```{r}
+
+# Load cleaned occurrence data ----
+cat("Loading cleaned occurrence data...\n")
+plantSEAsiaOccData <- read_csv("cleaned_occ_data/plantsOccDatacleaned_20260108.csv")
+
+# species and lat long data
+plantSEAsiaCollXY <- plantSEAsiaOccData %>%
+  select(gen, sp, long, lat) %>%
+  na.omit()
+
+plantSEAsiaCollXY <- plantSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
+
+# to sf object, specifying variables with coordinates and projection
+plantSEAsiaCollSF <- st_as_sf(plantSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarize()
+
+plantSEAsiaCollSF <- plantSEAsiaCollSF |> st_make_valid()
+
+plantCollRaster <- regionGrid |>
+  st_join(plantSEAsiaCollSF, join = st_intersects) |>
+  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
+  dplyr::group_by(cellid) |>
+  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/input_dataframes/", "squamatesData_", date_stamp, ".RData")
+save(plantSEAsiaOccData, plantSEAsiaCollXY, plantSEAsiaCollSF, plantCollRaster, file = output_filename)
+
+cat("Dataset saved as:", output_filename, "\n")
+
+
+```
+
+# PLOTTING
+
+## Fig. 1: Heatmaps of occurrence data
+
+### Frogs
+```{r}
+
+load("input_dataframes/frogsData_20260201.RData")
+
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 frog_bin_levels <- c("0","1–25","26–100","101–500")
@@ -2324,94 +2499,11 @@ density_table <- counts %>%
 
 ```
 
-# Mammals
+### Mammals
 
 ```{r}
-## Mammals
 
-# species and lat long data
-mammalSEAsiaCollXY <- mammalSEAsiaOccData %>%
-  select(gen, sp, long, lat) %>%
-  na.omit()
-
-mammalSEAsiaCollXY <- mammalSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
-
-# to sf object, specifying variables with coordinates and projection
-mammalSEAsiaCollSF <- st_as_sf(mammalSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
-  group_by(id) %>%
-  summarize()
-
-# ------------------------------------------------------------------------------
-# 4) Plot
-# ------------------------------------------------------------------------------
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-regionPoly <- ng |> st_make_valid()
-
-regionGrid <- regionPoly |>
-  st_make_grid(cellsize = 0.3, what = "polygons") |>
-  st_intersection(regionPoly) |>
-  st_collection_extract("POLYGON") |>
-  st_make_valid() |>
-  st_sf() |>
-  dplyr::mutate(cellid = dplyr::row_number())
-
-gridPlot <-
-  ggplot() +
-  geom_sf(data = regionPoly) +
-  geom_sf(data = regionGrid) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-gridPlot
-
-mammalSEAsiaCollSF <- mammalSEAsiaCollSF |> st_make_valid()
-
-mammalCollRaster <- regionGrid |>
-  st_join(mammalSEAsiaCollSF, join = st_intersects) |>
-  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
-  dplyr::group_by(cellid) |>
-  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
+load("input_dataframes/mammalsData_20260201.RData")
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 bin_levels <- c("0","1–25","26–100","101–500")
@@ -2458,7 +2550,7 @@ geom_sf(data = mammalCollRaster_binned, aes(fill = collection_bin), color = NA) 
     values = palMammals,
     limits = bin_levels,   # force order & inclusion
     drop   = FALSE,
-    guide_legend(override.aes = list(fill = pal))
+    guide_legend(override.aes = list(fill = palMammals))
   ) +
     geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
@@ -2504,111 +2596,9 @@ density_table <- counts %>%
 
 ```
 
-# Birds
+### Birds
 
 ```{r}
-## Birds
-
-
-# species and lat long data
-birdSEAsiaCollXY <- birdSEAsiaOccData %>%
-  select(gen, sp, long, lat) %>%
-  na.omit()
-
-birdSEAsiaCollXY <- birdSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
-
-# to sf object, specifying variables with coordinates and projection
-birdSEAsiaCollSF <- st_as_sf(birdSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
-  group_by(id) %>%
-  summarize()
-
-# ------------------------------------------------------------------------------
-# 4) Plot
-# ------------------------------------------------------------------------------
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-
-
-# plot points
-birdCollPlot <-
-  ggplot() +
-  geom_sf(data = ng, fill = "black", linewidth = 0.2) +
-  geom_sf(data = birdSEAsiaCollSF, col = "yellow", pch = 20, cex = 0.8) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-
-regionPoly <- ng |> st_make_valid()
-
-regionGrid <- regionPoly |>
-  st_make_grid(cellsize = 0.3, what = "polygons") |>
-  st_intersection(regionPoly) |>
-  st_collection_extract("POLYGON") |>
-  st_make_valid() |>
-  st_sf() |>
-  dplyr::mutate(cellid = dplyr::row_number())
-
-gridPlot <-
-  ggplot() +
-  geom_sf(data = regionPoly) +
-  geom_sf(data = regionGrid) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-gridPlot
-
-birdSEAsiaCollSF <- birdSEAsiaCollSF |> st_make_valid()
-
-birdCollRaster <- regionGrid |>
-  st_join(birdSEAsiaCollSF, join = st_intersects) |>
-  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
-  dplyr::group_by(cellid) |>
-  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 bin_levels <- c("0","1–25","26–100","101–500","501–1000",
@@ -2706,111 +2696,9 @@ density_table <- counts %>%
 
 ```
 
-# Squamates
+### Squamates
 
 ```{r}
-## SQUAMATES
-
-
-# species and lat long data
-squamateSEAsiaCollXY <- squamateSEAsiaOccData %>%
-  select(gen, sp, long, lat) %>%
-  na.omit()
-
-squamateSEAsiaCollXY <- squamateSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
-
-# to sf object, specifying variables with coordinates and projection
-squamateSEAsiaCollSF <- st_as_sf(squamateSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
-  group_by(id) %>%
-  summarize()
-
-# ------------------------------------------------------------------------------
-# 4) Plot
-# ------------------------------------------------------------------------------
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-
-
-# plot points
-squamateCollPlot <-
-  ggplot() +
-  geom_sf(data = ng, fill = "black", linewidth = 0.2) +
-  geom_sf(data = squamateSEAsiaCollSF, col = "yellow", pch = 20, cex = 0.8) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-
-regionPoly <- ng |> st_make_valid()
-
-regionGrid <- regionPoly |>
-  st_make_grid(cellsize = 0.3, what = "polygons") |>
-  st_intersection(regionPoly) |>
-  st_collection_extract("POLYGON") |>
-  st_make_valid() |>
-  st_sf() |>
-  dplyr::mutate(cellid = dplyr::row_number())
-
-gridPlot <-
-  ggplot() +
-  geom_sf(data = regionPoly) +
-  geom_sf(data = regionGrid) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-gridPlot
-
-squamateSEAsiaCollSF <- squamateSEAsiaCollSF |> st_make_valid()
-
-squamateCollRaster <- regionGrid |>
-  st_join(squamateSEAsiaCollSF, join = st_intersects) |>
-  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
-  dplyr::group_by(cellid) |>
-  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 bin_levels <- c("0","1–25","26–100","101–500","501–1000")
@@ -2904,110 +2792,9 @@ density_table <- counts %>%
 
 ```
 
-# Vascular plants
+### Vascular plants
 
 ```{r}
-## VASCULAR PLANTS
-
-# species and lat long data
-plantSEAsiaCollXY <- plantSEAsiaOccData %>%
-  select(gen, sp, long, lat) %>%
-  na.omit()
-
-plantSEAsiaCollXY <- plantSEAsiaCollXY |> dplyr::mutate(id = dplyr::row_number(), .before = 1)
-
-# to sf object, specifying variables with coordinates and projection
-plantSEAsiaCollSF <- st_as_sf(plantSEAsiaCollXY, coords = c("long", "lat"), crs = 4326) %>%
-  group_by(id) %>%
-  summarize()
-
-# ------------------------------------------------------------------------------
-# 4) Plot
-# ------------------------------------------------------------------------------
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-
-
-# plot points
-plantCollPlot <-
-  ggplot() +
-  geom_sf(data = ng, fill = "black", linewidth = 0.2) +
-  geom_sf(data = plantSEAsiaCollSF, col = "yellow", pch = 20, cex = 0.8) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-
-regionPoly <- ng |> st_make_valid()
-
-regionGrid <- regionPoly |>
-  st_make_grid(cellsize = 0.3, what = "polygons") |>
-  st_intersection(regionPoly) |>
-  st_collection_extract("POLYGON") |>
-  st_make_valid() |>
-  st_sf() |>
-  dplyr::mutate(cellid = dplyr::row_number())
-
-gridPlot <-
-  ggplot() +
-  geom_sf(data = regionPoly) +
-  geom_sf(data = regionGrid) #+
-  #scale_x_continuous(breaks = c(-84)) +
-  #theme(
-    #plot.background = element_rect(fill = "#f1f2f3"),
-    #panel.background = element_rect(fill = "#2F4051"),
-    #panel.grid = element_blank(),
-    #line = element_blank(),
-    #rect = element_blank()
-  #)
-gridPlot
-
-plantSEAsiaCollSF <- plantSEAsiaCollSF |> st_make_valid()
-
-plantCollRaster <- regionGrid |>
-  st_join(plantSEAsiaCollSF, join = st_intersects) |>
-  dplyr::mutate(overlap = ifelse(!is.na(id), 1, 0)) |>
-  dplyr::group_by(cellid) |>
-  dplyr::summarize(numCollections = sum(overlap), .groups = "drop")
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 bin_levels <- c("0","1–25","26–100","101–500","501–1000",
@@ -3105,9 +2892,10 @@ density_table <- counts %>%
 
 
 ```
-# Fig. 2 Heatmaps of Alpha Diversity 
 
-# Frogs
+## Fig. 2 Heatmaps of Alpha Diversity 
+
+### Frogs
 
 ```{r}
 
@@ -3185,7 +2973,7 @@ ggsave(
 
 ```
 
-# Mammals
+### Mammals
 
 ```{r}
 
@@ -3266,7 +3054,7 @@ ggsave(
 
 ```
 
-# Birds
+### Birds
 
 ```{r}
 
@@ -3347,7 +3135,7 @@ ggsave(
 
 ```
 
-# Squamates
+### Squamates
 
 ```{r}
 
@@ -3428,7 +3216,7 @@ ggsave(
 
 ```
 
-# Vascular plants
+### Vascular plants
 
 ```{r}
 
@@ -3510,71 +3298,9 @@ ggsave(
 ```
 
 
-# Fig 3: Bivariate choropleth rasters
+## Fig 3: Bivariate choropleth heatmaps
 
-# Frogs
-
-```{r}
-
-fr_bi_grid <- frogsCollRaster_binned %>%
-  mutate(alpha = frogsAlphaBinned[[2]], .before = 3) %>%
-  select(-5)
-
-fr_bi_grid <- fr_bi_grid %>%
-  mutate(
-    # --- collections classes ---
-    numCollectionsLab = case_when(
-      numCollections == 0                      ~ 0L,
-      numCollections >= 1   & numCollections <= 100 ~ 1L,
-      numCollections >= 101 & numCollections <= 200 ~ 2L,
-      numCollections > 200                      ~ 3L,
-      TRUE ~ NA_integer_
-    ),
-
-    # --- richness (alpha) classes ---
-    alphaLab = case_when(
-      alpha == 0                     ~ 0L,
-      alpha >= 1  & alpha <= 20      ~ 1L,
-      alpha >= 21 & alpha <= 40      ~ 2L,
-      alpha > 40                     ~ 3L,
-      TRUE ~ NA_integer_
-    ),
-
-    # --- bivariate code ---
-    jointLab = case_when(
-      is.na(numCollectionsLab) | is.na(alphaLab) ~ NA_character_,
-      TRUE ~ paste0(numCollectionsLab, "-", alphaLab)
-    )
-  )
-
-fr_bi_grid <- fr_bi_grid %>%
-  mutate(
-    jointLab_plot = if_else(jointLab == "0-0", NA_character_, jointLab)
-  )
-
-bi_pal_3x3 <- c(
-  "1-1" = "#7A7A7A", "1-2" = "#B59B3A", "1-3" = "#FFD200",
-  "2-1" = "#B0B0B0", "2-2" = "#D8C98A", "2-3" = "#FFE680",
-  "3-1" = "#E6E6E6", "3-2" = "#F2EBCB", "3-3" = "#FFF4B3"
-)
-
-p <- ggplot() +
-  # bivariate grid
-  geom_sf(data = fr_bi_grid, aes(fill = jointLab), color = NA) +
-  # outline on top
-  geom_sf(data = regionPoly, fill = NA, linewidth = 0.3) +
-  scale_fill_manual(values = bi_pal_3x3, na.value = "black") +
-  coord_sf(datum = NA) +
-  theme_void() +
-  theme(
-    legend.position = "none"
-  )
-
-```
-
-# Fig 4: Bivariate choropleth heatmaps
-
-# Frogs
+### Frogs
 
 ```{r}
 
@@ -3639,7 +3365,7 @@ final_plot <- ggdraw() +
 
 ```
 
-# Mammals
+### Mammals
 
 ```{r}
 
@@ -3704,7 +3430,7 @@ final_plot <- ggdraw() +
 
 ```
 
-# Birds
+### Birds
 
 ```{r}
 
@@ -3769,7 +3495,7 @@ final_plot <- ggdraw() +
 
 ```
 
-# Squamates
+### Squamates
 
 ```{r}
 
@@ -3834,7 +3560,7 @@ final_plot <- ggdraw() +
 
 ```
 
-# Vascular plants
+### Vascular plants
 
 ```{r}
 
@@ -3899,51 +3625,9 @@ final_plot <- ggdraw() +
 
 ```
 
-# Fig 5: Protected areas of New Guinea
+## Fig 5: Protected areas of New Guinea
 
 ```{r}
-
-## Create Region mask
-
-# Countries (Papua New Guinea only)
-countries <- ne_countries(scale = "large", returnclass = "sf")
-
-png <- countries %>%
-  filter(name == "Papua New Guinea")
-
-# Indonesian provinces
-states <- ne_states(country = "Indonesia",
-                    returnclass = "sf")
-
-papua_id <- states %>%
-  filter(name %in% c("Papua", "Papua Barat"))
-
-png2 <- png %>%
-  transmute(
-    unit = name,          # "Papua New Guinea"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-papua2 <- papua_id %>%
-  transmute(
-    unit = name,          # "Papua", "Papua Barat"
-    geom = geometry
-  ) %>%
-  st_as_sf()
-
-new_guinea <- bind_rows(
-  st_make_valid(png2),
-  st_make_valid(papua2)
-)
-
-
-# (Optional) dissolve borders into a single polygon
-ng <- new_guinea %>%
-  st_union()
-
-
-regionPoly <- ng |> st_make_valid()
 
 ## Import shapefiles
 
@@ -3977,19 +3661,13 @@ pa_ng <- pa_merged %>%
 
 ggplot() +
   geom_sf(data = regionPoly, fill = "black", color = "black", linewidth = 0.4) +
-  geom_sf(data = pa_ng, fill = "NA", color = "white", alpha = 0.6) +
-  coord_sf(expand = FALSE) +
-  theme_minimal() #+
-  #labs(
-    #title = "Protected areas on New Guinea",
-    #subtitle = "Papua New Guinea + Indonesian provinces (Papua, Papua Barat)",
-    #fill = "Protected areas"
-  #)
+  geom_sf(data = pa_ng, fill = "forestgreen", color = NA, alpha = 0.6) +
+  coord_sf() 
 
 
 ```
 
-# Fig S1: Raw cleaned occurrence data
+## Fig S1: Raw cleaned occurrence data
 ```{r}
 
 ## FROGS
@@ -4118,10 +3796,10 @@ plantPointMap <-
 
 
 
-## STATS
+# STATS
 
-# Test for spatial randomness
-# Birds
+## Test for spatial randomness
+### Birds
 ```{r}
 
 # Study area
@@ -4177,7 +3855,7 @@ qt_mc
 
 ```
 
-# Squamates
+### Squamates
 
 ```{r}
 
@@ -4234,7 +3912,7 @@ qt_mc
 
 ```
 
-# Vascular plants
+### Vascular plants
 
 ```{r}
 
