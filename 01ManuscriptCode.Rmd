@@ -3675,18 +3675,18 @@ ggplot() +
 
 ```{r}
 
-yearly_data <- frogSEAsiaOccData %>%
+frogCollYrs <- frogSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
   filter(!is.na(year)) %>%
   count(year, name = "n") %>%
   arrange(year) %>%
   mutate(cum_n = cumsum(n))
 
-max_n <- max(yearly_data$n)
-max_cum <- max(yearly_data$cum_n)
+max_n <- max(frogCollYrs$n)
+max_cum <- max(frogCollYrs$cum_n)
 scale_factor <- max_cum / max_n
 
-ggplot(yearly_data, aes(x = year)) +
+frogCollYrsPlot = ggplot(frogCollYrs, aes(x = year)) +
   
   geom_col(
     aes(y = n * scale_factor),
@@ -3713,6 +3713,20 @@ ggplot(yearly_data, aes(x = year)) +
   ) +
   
   theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "frogCollYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = frogCollYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
 ```
 
 ## Fig 7: Cumulative rescription records and year-frequency histograms
@@ -3720,22 +3734,22 @@ ggplot(yearly_data, aes(x = year)) +
 ### Frogs
 
 ```{r}
-desc_yearly_species <- frogSEAsiaOccData %>%
-  mutate(
-    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
-    desc_year = as.integer(desc_year)
-  ) %>%
+frogDescriptionYrs = read_csv("ngAmphibiansInventory.csv")
+
+# 1) Summarise descriptions by year (bars) + cumulative (line)
+desc_yearly <- frogDescriptionYrs %>%
+  mutate(desc_year = as.integer(year)) %>%      # assumes your column is literally named 'year'
   filter(!is.na(desc_year)) %>%
-  distinct(sp, desc_year) %>%
+  distinct(binomial, desc_year) %>%              # ensures no duplicated species entries
   count(desc_year, name = "n_species") %>%
   arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species)) # may be an error in number of species here
+  mutate(cum_species = cumsum(n_species))
 
 # 2) Scaling factor for secondary y-axis
 scale_factor <- max(desc_yearly_species$cum_species) / max(desc_yearly_species$n_species)
 
 # 3) Plot
-ggplot(desc_yearly_species, aes(x = desc_year)) +
+ggplot(desc_yearly, aes(x = desc_year)) +
   geom_col(
     aes(y = n_species * scale_factor),
     fill = "grey80",
