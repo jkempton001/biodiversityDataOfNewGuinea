@@ -2400,13 +2400,20 @@ cat("Dataset saved as:", output_filename, "\n")
 
 # PLOTTING
 
+## Load taxon data
+
+```{r}
+
+load("input_dataframes/frogsData_20260201.RData")
+load("input_dataframes/birdsData_20260201.RData")
+
+
+```
+
 ## Fig. 1: Heatmaps of occurrence data
 
 ### Frogs
 ```{r}
-
-load("input_dataframes/frogsData_20260201.RData")
-
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 frog_bin_levels <- c("0","1–25","26–100","101–500")
@@ -3729,7 +3736,66 @@ ggsave(
 
 ```
 
-## Fig 7: Cumulative rescription records and year-frequency histograms
+### Birds
+
+```{r}
+birdCollYrs <- birdSEAsiaOccData %>%
+  mutate(year = as.integer(year)) %>%
+  filter(!is.na(year)) %>%
+  count(year, name = "n") %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n))
+
+max_n <- max(birdCollYrs$n)
+max_cum <- max(birdCollYrs$cum_n)
+scale_factor <- max_cum / max_n
+
+birdCollYrsPlot = ggplot(birdCollYrs, aes(x = year)) +
+  
+  geom_col(
+    aes(y = n * scale_factor),
+    fill = "grey80"
+  ) +
+  
+  geom_line(
+    aes(y = cum_n),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  
+  scale_y_continuous(
+    name = "Cumulative number of occurrence records",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual number of occurrence records"
+    )
+  ) +
+  
+  labs(
+    title = "Annual and Cumulative Frog Occurrence Records",
+    x = "Year of collection"
+  ) +
+  
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "birdCollYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = birdCollYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+
+```
+
+## Fig 7: Cumulative description records and year-frequency histograms
 
 ### Frogs
 
@@ -3749,7 +3815,7 @@ desc_yearly <- frogDescriptionYrs %>%
 scale_factor <- max(desc_yearly_species$cum_species) / max(desc_yearly_species$n_species)
 
 # 3) Plot
-ggplot(desc_yearly, aes(x = desc_year)) +
+frogDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
   geom_col(
     aes(y = n_species * scale_factor),
     fill = "grey80",
@@ -3772,6 +3838,77 @@ ggplot(desc_yearly, aes(x = desc_year)) +
     x = "Year species was described"
   ) +
   theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "frogDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = frogDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Birds
+
+```{r}
+
+birdDescriptionYrs = read_csv("ngBirdsInventory.csv")
+
+# 1) Summarise descriptions by year (bars) + cumulative (line)
+desc_yearly <- birdDescriptionYrs %>%
+  mutate(desc_year = as.integer(year)) %>%      # assumes your column is literally named 'year'
+  filter(!is.na(desc_year)) %>%
+  distinct(ScientificName, desc_year) %>%              # ensures no duplicated species entries
+  count(desc_year, name = "n_species") %>%
+  arrange(desc_year) %>%
+  mutate(cum_species = cumsum(n_species))
+
+# 2) Scaling factor for secondary y-axis
+scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
+
+# 3) Plot
+birdDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
+  geom_col(
+    aes(y = n_species * scale_factor),
+    fill = "grey80",
+    color = NA
+  ) +
+  geom_line(
+    aes(y = cum_species),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  scale_y_continuous(
+    name = "Cumulative number of species described",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Species described per year"
+    )
+  ) +
+  labs(
+    title = "Species Description Through Time",
+    x = "Year species was described"
+  ) +
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "birdDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = birdDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
 
 ```
 
