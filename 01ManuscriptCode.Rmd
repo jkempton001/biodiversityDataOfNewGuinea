@@ -32,6 +32,7 @@ library(scales)
 library(colorspace)
 library(patchwork)
 library(cowplot)
+library(scales) 
 
 
 
@@ -3687,42 +3688,75 @@ ggplot() +
 
 frogCollYrs <- frogSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
-  filter(!is.na(year)) %>%
-  count(year, name = "n") %>%
-  arrange(year) %>%
-  mutate(cum_n = cumsum(n))
+  filter(!is.na(year), countryCode %in% c("PG", "ID")) %>%
+  count(year, countryCode, name = "n") %>%
+  arrange(year, countryCode)
 
-max_n <- max(frogCollYrs$n)
-max_cum <- max(frogCollYrs$cum_n)
+frogCollTotals <- frogCollYrs %>%
+  group_by(year) %>%
+  summarise(
+    n_total = sum(n),
+    .groups = "drop"
+  ) %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n_total))
+
+max_n <- max(frogCollTotals$n_total)
+max_cum <- max(frogCollTotals$cum_n)
 scale_factor <- max_cum / max_n
 
-frogCollYrsPlot = ggplot(frogCollYrs, aes(x = year)) +
+frogCollYrsPlot <- ggplot() +
   
   geom_col(
-    aes(y = n * scale_factor),
-    fill = "grey80"
+    data = frogCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
   ) +
   
   geom_line(
-    aes(y = cum_n),
+    data = frogCollTotals,
+    aes(x = year, y = cum_n),
     linewidth = 1.2,
-    color = "#8ECAE6"
+    color = "#cccccc",
+    alpha = 0.7
   ) +
   
-  scale_y_continuous(
-    name = "Cumulative number of occurrence records",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Annual number of occurrence records"
-    )
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
   ) +
   
-  labs(
-    title = "Annual and Cumulative Frog Occurrence Records",
-    x = "Year of collection"
-  ) +
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
   
-  theme_minimal()
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
@@ -3742,44 +3776,78 @@ ggsave(
 ### Birds
 
 ```{r}
+
 birdCollYrs <- birdSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
-  filter(!is.na(year)) %>%
-  count(year, name = "n") %>%
-  arrange(year) %>%
-  mutate(cum_n = cumsum(n))
+  filter(!is.na(year), countryCode %in% c("PG", "ID")) %>%
+  count(year, countryCode, name = "n") %>%
+  arrange(year, countryCode)
 
-max_n <- max(birdCollYrs$n)
-max_cum <- max(birdCollYrs$cum_n)
+birdCollTotals <- birdCollYrs %>%
+  group_by(year) %>%
+  summarise(
+    n_total = sum(n),
+    .groups = "drop"
+  ) %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n_total))
+
+max_n <- max(birdCollTotals$n_total)
+max_cum <- max(birdCollTotals$cum_n)
 scale_factor <- max_cum / max_n
 
-birdCollYrsPlot = ggplot(birdCollYrs, aes(x = year)) +
+birdCollYrsPlot <- ggplot() +
   
   geom_col(
-    aes(y = n * scale_factor),
-    fill = "grey80"
+    data = birdCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
   ) +
   
   geom_line(
-    aes(y = cum_n),
+    data = birdCollTotals,
+    aes(x = year, y = cum_n),
     linewidth = 1.2,
-    color = "#8ECAE6"
+    color = "#cccccc",
+    alpha = 0.7
   ) +
   
-  scale_y_continuous(
-    name = "Cumulative number of occurrence records",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Annual number of occurrence records"
-    )
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
   ) +
   
-  labs(
-    title = "Annual and Cumulative Frog Occurrence Records",
-    x = "Year of collection"
-  ) +
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
   
-  theme_minimal()
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
@@ -3802,42 +3870,75 @@ ggsave(
 
 mammalCollYrs <- mammalSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
-  filter(!is.na(year)) %>%
-  count(year, name = "n") %>%
-  arrange(year) %>%
-  mutate(cum_n = cumsum(n))
+  filter(!is.na(year), countryCode %in% c("PG", "ID")) %>%
+  count(year, countryCode, name = "n") %>%
+  arrange(year, countryCode)
 
-max_n <- max(mammalCollYrs$n)
-max_cum <- max(mammalCollYrs$cum_n)
+mammalCollTotals <- mammalCollYrs %>%
+  group_by(year) %>%
+  summarise(
+    n_total = sum(n),
+    .groups = "drop"
+  ) %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n_total))
+
+max_n <- max(mammalCollTotals$n_total)
+max_cum <- max(mammalCollTotals$cum_n)
 scale_factor <- max_cum / max_n
 
-mammalCollYrsPlot = ggplot(mammalCollYrs, aes(x = year)) +
+mammalCollYrsPlot <- ggplot() +
   
   geom_col(
-    aes(y = n * scale_factor),
-    fill = "grey80"
+    data = mammalCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
   ) +
   
   geom_line(
-    aes(y = cum_n),
+    data = mammalCollTotals,
+    aes(x = year, y = cum_n),
     linewidth = 1.2,
-    color = "#8ECAE6"
+    color = "#cccccc",
+    alpha = 0.7
   ) +
   
-  scale_y_continuous(
-    name = "Cumulative number of occurrence records",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Annual number of occurrence records"
-    )
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
   ) +
   
-  labs(
-    title = "Annual and Cumulative Mammal Occurrence Records",
-    x = "Year of collection"
-  ) +
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
   
-  theme_minimal()
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
@@ -3862,42 +3963,75 @@ ggsave(
 
 plantCollYrs <- plantSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
-  filter(!is.na(year)) %>%
-  count(year, name = "n") %>%
-  arrange(year) %>%
-  mutate(cum_n = cumsum(n))
+  filter(!is.na(year), countryCode %in% c("PG", "ID")) %>%
+  count(year, countryCode, name = "n") %>%
+  arrange(year, countryCode)
 
-max_n <- max(plantCollYrs$n)
-max_cum <- max(plantCollYrs$cum_n)
+plantCollTotals <- plantCollYrs %>%
+  group_by(year) %>%
+  summarise(
+    n_total = sum(n),
+    .groups = "drop"
+  ) %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n_total))
+
+max_n <- max(plantCollTotals$n_total)
+max_cum <- max(plantCollTotals$cum_n)
 scale_factor <- max_cum / max_n
 
-plantCollYrsPlot = ggplot(plantCollYrs, aes(x = year)) +
+plantCollYrsPlot <- ggplot() +
   
   geom_col(
-    aes(y = n * scale_factor),
-    fill = "grey80"
+    data = plantCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
   ) +
   
   geom_line(
-    aes(y = cum_n),
+    data = plantCollTotals,
+    aes(x = year, y = cum_n),
     linewidth = 1.2,
-    color = "#8ECAE6"
+    color = "#cccccc",
+    alpha = 0.7
   ) +
   
-  scale_y_continuous(
-    name = "Cumulative number of occurrence records",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Annual number of occurrence records"
-    )
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
   ) +
   
-  labs(
-    title = "Annual and Cumulative Plant Occurrence Records",
-    x = "Year of collection"
-  ) +
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
   
-  theme_minimal()
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
@@ -3922,42 +4056,75 @@ ggsave(
 
 squamateCollYrs <- squamateSEAsiaOccData %>%
   mutate(year = as.integer(year)) %>%
-  filter(!is.na(year)) %>%
-  count(year, name = "n") %>%
-  arrange(year) %>%
-  mutate(cum_n = cumsum(n))
+  filter(!is.na(year), countryCode %in% c("PG", "ID")) %>%
+  count(year, countryCode, name = "n") %>%
+  arrange(year, countryCode)
 
-max_n <- max(squamateCollYrs$n)
-max_cum <- max(squamateCollYrs$cum_n)
+squamateCollTotals <- squamateCollYrs %>%
+  group_by(year) %>%
+  summarise(
+    n_total = sum(n),
+    .groups = "drop"
+  ) %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n_total))
+
+max_n <- max(squamateCollTotals$n_total)
+max_cum <- max(squamateCollTotals$cum_n)
 scale_factor <- max_cum / max_n
 
-squamateCollYrsPlot = ggplot(squamateCollYrs, aes(x = year)) +
+squamateCollYrsPlot <- ggplot() +
   
   geom_col(
-    aes(y = n * scale_factor),
-    fill = "grey80"
+    data = squamateCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
   ) +
   
   geom_line(
-    aes(y = cum_n),
+    data = squamateCollTotals,
+    aes(x = year, y = cum_n),
     linewidth = 1.2,
-    color = "#8ECAE6"
+    color = "#cccccc",
+    alpha = 0.7
   ) +
   
-  scale_y_continuous(
-    name = "Cumulative number of occurrence records",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Annual number of occurrence records"
-    )
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
   ) +
   
-  labs(
-    title = "Annual and Cumulative Squamate Occurrence Records",
-    x = "Year of collection"
-  ) +
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
   
-  theme_minimal()
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
@@ -3975,6 +4142,699 @@ ggsave(
 
 
 ```
+
+## Fig 6a: Cumulative species appearance in IP vs PNG
+
+### Frogs
+
+```{r}
+
+species_col <- "sp"  # change if needed
+
+frogSpeciesFirst <- frogSEAsiaOccData %>%
+  mutate(
+    year = as.integer(year),
+    countryCode = as.character(countryCode)
+  ) %>%
+  filter(!is.na(year), countryCode %in% c("PG", "ID"))
+
+first_NG <- frogSpeciesFirst %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_PG <- frogSpeciesFirst %>%
+  filter(countryCode == "PG") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_ID <- frogSpeciesFirst %>%
+  filter(countryCode == "ID") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+frogSpeciesYrs <- frogSpeciesFirst %>%
+  group_by(countryCode, .data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, countryCode, name = "n_species") %>%
+  rename(year = first_year) %>%
+  arrange(year, countryCode)
+
+frogSpeciesTotals <- frogSpeciesYrs %>%
+  group_by(year) %>%
+  summarise(n_total = sum(n_species), .groups = "drop") %>%
+  arrange(year) %>%
+  mutate(cum_species = cumsum(n_total))
+
+scale_factor <- max(frogSpeciesTotals$cum_species) /
+                max(frogSpeciesTotals$n_total)
+
+frogSpeciesYrsPlot <- ggplot() +
+
+  # Annual new species bars
+  geom_col(
+    data = frogSpeciesYrs,
+    aes(x = year, y = n_species * scale_factor, fill = countryCode),
+    color = NA
+  ) +
+
+  # Cumulative species – All New Guinea
+  geom_step(
+    data = first_NG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "grey60",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Papua New Guinea
+  geom_step(
+    data = first_PG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#8ECAE6",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Indonesian Papua
+  geom_step(
+    data = first_ID,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#CFEAF5",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  scale_fill_manual(
+    values = c("PG" = "#8ECAE6", "ID" = "#CFEAF5")
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative new records",
+    limits = c(0, NA),
+    expand = expansion(mult = 0),
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual new records"
+    )
+  ) +
+
+  labs(x = "Year") +
+
+  theme_minimal() +
+  guides(fill = guide_legend(title = NULL)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.5),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "frogSpFirstRecord_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = frogSpeciesYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Birds
+
+```{r}
+
+species_col <- "sp"  # change if needed
+
+birdSpeciesFirst <- birdSEAsiaOccData %>%
+  mutate(
+    year = as.integer(year),
+    countryCode = as.character(countryCode)
+  ) %>%
+  filter(!is.na(year), countryCode %in% c("PG", "ID"))
+
+first_NG <- birdSpeciesFirst %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_PG <- birdSpeciesFirst %>%
+  filter(countryCode == "PG") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_ID <- birdSpeciesFirst %>%
+  filter(countryCode == "ID") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+birdSpeciesYrs <- birdSpeciesFirst %>%
+  group_by(countryCode, .data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, countryCode, name = "n_species") %>%
+  rename(year = first_year) %>%
+  arrange(year, countryCode)
+
+birdSpeciesTotals <- birdSpeciesYrs %>%
+  group_by(year) %>%
+  summarise(n_total = sum(n_species), .groups = "drop") %>%
+  arrange(year) %>%
+  mutate(cum_species = cumsum(n_total))
+
+scale_factor <- max(birdSpeciesTotals$cum_species) /
+                max(birdSpeciesTotals$n_total)
+
+birdSpeciesYrsPlot <- ggplot() +
+
+  # Annual new species bars
+  geom_col(
+    data = birdSpeciesYrs,
+    aes(x = year, y = n_species * scale_factor, fill = countryCode),
+    color = NA
+  ) +
+
+  # Cumulative species – All New Guinea
+  geom_step(
+    data = first_NG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "grey60",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Papua New Guinea
+  geom_step(
+    data = first_PG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#8ECAE6",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Indonesian Papua
+  geom_step(
+    data = first_ID,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#CFEAF5",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  scale_fill_manual(
+    values = c("PG" = "#8ECAE6", "ID" = "#CFEAF5")
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative new records",
+    limits = c(0, NA),
+    expand = expansion(mult = 0),
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual new records"
+    )
+  ) +
+
+  labs(x = "Year") +
+
+  theme_minimal() +
+  guides(fill = guide_legend(title = NULL)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.5),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "birdSpFirstRecord_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = birdSpeciesYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Mammals
+
+```{r}
+
+species_col <- "sp"  # change if needed
+
+mammalSpeciesFirst <- mammalSEAsiaOccData %>%
+  mutate(
+    year = as.integer(year),
+    countryCode = as.character(countryCode)
+  ) %>%
+  filter(!is.na(year), countryCode %in% c("PG", "ID"))
+
+first_NG <- mammalSpeciesFirst %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_PG <- mammalSpeciesFirst %>%
+  filter(countryCode == "PG") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_ID <- mammalSpeciesFirst %>%
+  filter(countryCode == "ID") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+mammalSpeciesYrs <- mammalSpeciesFirst %>%
+  group_by(countryCode, .data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, countryCode, name = "n_species") %>%
+  rename(year = first_year) %>%
+  arrange(year, countryCode)
+
+mammalSpeciesTotals <- mammalSpeciesYrs %>%
+  group_by(year) %>%
+  summarise(n_total = sum(n_species), .groups = "drop") %>%
+  arrange(year) %>%
+  mutate(cum_species = cumsum(n_total))
+
+scale_factor <- max(mammalSpeciesTotals$cum_species) /
+                max(mammalSpeciesTotals$n_total)
+
+mammalSpeciesYrsPlot <- ggplot() +
+
+  # Annual new species bars
+  geom_col(
+    data = mammalSpeciesYrs,
+    aes(x = year, y = n_species * scale_factor, fill = countryCode),
+    color = NA
+  ) +
+
+  # Cumulative species – All New Guinea
+  geom_step(
+    data = first_NG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "grey60",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Papua New Guinea
+  geom_step(
+    data = first_PG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#8ECAE6",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Indonesian Papua
+  geom_step(
+    data = first_ID,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#CFEAF5",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  scale_fill_manual(
+    values = c("PG" = "#8ECAE6", "ID" = "#CFEAF5")
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species appearance",
+    limits = c(0, NA),
+    expand = expansion(mult = 0),
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual new species appearance"
+    )
+  ) +
+
+  labs(x = "Year") +
+
+  theme_minimal() +
+  guides(fill = guide_legend(title = NULL)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.5),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "mammalSpFirstRecord_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = mammalSpeciesYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+
+```
+
+### Plants
+
+```{r}
+
+species_col <- "sp"  # change if needed
+
+plantSpeciesFirst <- plantSEAsiaOccData %>%
+  mutate(
+    year = as.integer(year),
+    countryCode = as.character(countryCode)
+  ) %>%
+  filter(!is.na(year), countryCode %in% c("PG", "ID"))
+
+first_NG <- plantSpeciesFirst %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_PG <- plantSpeciesFirst %>%
+  filter(countryCode == "PG") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_ID <- plantSpeciesFirst %>%
+  filter(countryCode == "ID") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+plantSpeciesYrs <- plantSpeciesFirst %>%
+  group_by(countryCode, .data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, countryCode, name = "n_species") %>%
+  rename(year = first_year) %>%
+  arrange(year, countryCode)
+
+plantSpeciesTotals <- plantSpeciesYrs %>%
+  group_by(year) %>%
+  summarise(n_total = sum(n_species), .groups = "drop") %>%
+  arrange(year) %>%
+  mutate(cum_species = cumsum(n_total))
+
+scale_factor <- max(plantSpeciesTotals$cum_species) /
+                max(plantSpeciesTotals$n_total)
+
+plantSpeciesYrsPlot <- ggplot() +
+
+  # Annual new species bars
+  geom_col(
+    data = frogSpeciesYrs,
+    aes(x = year, y = n_species * scale_factor, fill = countryCode),
+    color = NA
+  ) +
+
+  # Cumulative species – All New Guinea
+  geom_step(
+    data = first_NG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "grey60",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Papua New Guinea
+  geom_step(
+    data = first_PG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#8ECAE6",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Indonesian Papua
+  geom_step(
+    data = first_ID,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#CFEAF5",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  scale_fill_manual(
+    values = c("PG" = "#8ECAE6", "ID" = "#CFEAF5")
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species appearance",
+    limits = c(0, NA),
+    expand = expansion(mult = 0),
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual new species appearance"
+    )
+  ) +
+
+  labs(x = "Year") +
+
+  theme_minimal() +
+  guides(fill = guide_legend(title = NULL)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.5),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "plantSpFirstRecord_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = plantSpeciesYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+```
+
+### Squamates
+
+```{r}
+
+species_col <- "sp"  # change if needed
+
+squamateSpeciesFirst <- squamateSEAsiaOccData %>%
+  mutate(
+    year = as.integer(year),
+    countryCode = as.character(countryCode)
+  ) %>%
+  filter(!is.na(year), countryCode %in% c("PG", "ID"))
+
+first_NG <- squamateSpeciesFirst %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_PG <- squamateSpeciesFirst %>%
+  filter(countryCode == "PG") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+first_ID <- squamateSpeciesFirst %>%
+  filter(countryCode == "ID") %>%
+  group_by(.data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, name = "n") %>%
+  arrange(first_year) %>%
+  mutate(cum_n = cumsum(n)) %>%
+  rename(year = first_year)
+
+squamateSpeciesYrs <- squamateSpeciesFirst %>%
+  group_by(countryCode, .data[[species_col]]) %>%
+  summarise(first_year = min(year), .groups = "drop") %>%
+  count(first_year, countryCode, name = "n_species") %>%
+  rename(year = first_year) %>%
+  arrange(year, countryCode)
+
+squamateSpeciesTotals <- squamateSpeciesYrs %>%
+  group_by(year) %>%
+  summarise(n_total = sum(n_species), .groups = "drop") %>%
+  arrange(year) %>%
+  mutate(cum_species = cumsum(n_total))
+
+scale_factor <- max(squamateSpeciesTotals$cum_species) /
+                max(squamateSpeciesTotals$n_total)
+
+squamateSpeciesYrsPlot <- ggplot() +
+
+  # Annual new species bars
+  geom_col(
+    data = squamateSpeciesYrs,
+    aes(x = year, y = n_species * scale_factor, fill = countryCode),
+    color = NA
+  ) +
+
+  # Cumulative species – All New Guinea
+  geom_step(
+    data = first_NG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "grey60",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Papua New Guinea
+  geom_step(
+    data = first_PG,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#8ECAE6",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  # Cumulative species – Indonesian Papua
+  geom_step(
+    data = first_ID,
+    aes(x = year, y = cum_n),
+    linewidth = 1.3,
+    color = "#CFEAF5",
+    alpha = 0.7,
+    direction = "hv"
+  ) +
+
+  scale_fill_manual(
+    values = c("PG" = "#8ECAE6", "ID" = "#CFEAF5")
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species appearance",
+    limits = c(0, NA),
+    expand = expansion(mult = 0),
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual new species appearance"
+    )
+  ) +
+
+  labs(x = "Year") +
+
+  theme_minimal() +
+  guides(fill = guide_legend(title = NULL)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.5),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "squamateSpFirstRecord_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = squamateSpeciesYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+```
+
+
 
 ## Fig 7: Cumulative description records and year-frequency histograms
 
@@ -3994,6 +4854,62 @@ desc_yearly <- frogDescriptionYrs %>%
 
 # 2) Scaling factor for secondary y-axis
 scale_factor <- max(desc_yearly_species$cum_species) / max(desc_yearly_species$n_species)
+
+
+
+frogCollYrsPlot <- ggplot() +
+  
+  geom_col(
+    data = frogCollYrs,
+    aes(
+      x = year,
+      y = n * scale_factor,
+      fill = countryCode
+    ),
+    color = NA
+  ) +
+  
+  geom_line(
+    data = frogCollTotals,
+    aes(x = year, y = cum_n),
+    linewidth = 1.2,
+    color = "#cccccc",
+    alpha = 0.7
+  ) +
+  
+  scale_fill_manual(
+    values = c(
+      "PG" = "#8ECAE6",
+      "ID" = "#CFEAF5"
+    ),
+    name = "Country"
+  ) +
+  
+scale_y_continuous(
+  name = "Cumulative occurrence records",
+  limits = c(0, NA),          # ensure baseline at 0
+  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
+  sec.axis = sec_axis(
+    ~ . / scale_factor,
+    name = "Annual occurrence records"
+  )
+) +
+  
+  labs(x = "Year") +
+  
+theme_minimal() +
+guides(fill = guide_legend(title = NULL)) +
+theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line        = element_line(color = "grey80"),
+  axis.ticks       = element_line(color = "grey80"),
+  legend.position  = c(0.05, 0.5),
+  legend.justification = c(0, 0.5),
+  legend.background = element_blank()
+)
+
+
 
 # 3) Plot
 frogDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
