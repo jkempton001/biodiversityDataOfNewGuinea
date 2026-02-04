@@ -2406,6 +2406,9 @@ cat("Dataset saved as:", output_filename, "\n")
 
 load("input_dataframes/frogsData_20260201.RData")
 load("input_dataframes/birdsData_20260201.RData")
+load("input_dataframes/mammalsData_20260201.RData")
+load("input_dataframes/plantsData_20260201.RData")
+load("input_dataframes/squamatesData_20260202.RData")
 
 
 ```
@@ -3791,6 +3794,184 @@ ggsave(
   dpi      = 300                          # resolution; affects rasterized elements
 )
 
+```
+
+### Mammals
+
+```{r}
+
+mammalCollYrs <- mammalSEAsiaOccData %>%
+  mutate(year = as.integer(year)) %>%
+  filter(!is.na(year)) %>%
+  count(year, name = "n") %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n))
+
+max_n <- max(mammalCollYrs$n)
+max_cum <- max(mammalCollYrs$cum_n)
+scale_factor <- max_cum / max_n
+
+mammalCollYrsPlot = ggplot(mammalCollYrs, aes(x = year)) +
+  
+  geom_col(
+    aes(y = n * scale_factor),
+    fill = "grey80"
+  ) +
+  
+  geom_line(
+    aes(y = cum_n),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  
+  scale_y_continuous(
+    name = "Cumulative number of occurrence records",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual number of occurrence records"
+    )
+  ) +
+  
+  labs(
+    title = "Annual and Cumulative Mammal Occurrence Records",
+    x = "Year of collection"
+  ) +
+  
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "mammalCollYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = mammalCollYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+
+```
+
+### Plants
+
+```{r}
+
+plantCollYrs <- plantSEAsiaOccData %>%
+  mutate(year = as.integer(year)) %>%
+  filter(!is.na(year)) %>%
+  count(year, name = "n") %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n))
+
+max_n <- max(plantCollYrs$n)
+max_cum <- max(plantCollYrs$cum_n)
+scale_factor <- max_cum / max_n
+
+plantCollYrsPlot = ggplot(plantCollYrs, aes(x = year)) +
+  
+  geom_col(
+    aes(y = n * scale_factor),
+    fill = "grey80"
+  ) +
+  
+  geom_line(
+    aes(y = cum_n),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  
+  scale_y_continuous(
+    name = "Cumulative number of occurrence records",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual number of occurrence records"
+    )
+  ) +
+  
+  labs(
+    title = "Annual and Cumulative Plant Occurrence Records",
+    x = "Year of collection"
+  ) +
+  
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "plantCollYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = plantCollYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+
+
+```
+
+### Squamates
+
+```{r}
+
+squamateCollYrs <- squamateSEAsiaOccData %>%
+  mutate(year = as.integer(year)) %>%
+  filter(!is.na(year)) %>%
+  count(year, name = "n") %>%
+  arrange(year) %>%
+  mutate(cum_n = cumsum(n))
+
+max_n <- max(squamateCollYrs$n)
+max_cum <- max(squamateCollYrs$cum_n)
+scale_factor <- max_cum / max_n
+
+squamateCollYrsPlot = ggplot(squamateCollYrs, aes(x = year)) +
+  
+  geom_col(
+    aes(y = n * scale_factor),
+    fill = "grey80"
+  ) +
+  
+  geom_line(
+    aes(y = cum_n),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  
+  scale_y_continuous(
+    name = "Cumulative number of occurrence records",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Annual number of occurrence records"
+    )
+  ) +
+  
+  labs(
+    title = "Annual and Cumulative Squamate Occurrence Records",
+    x = "Year of collection"
+  ) +
+  
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "squamateCollYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = squamateCollYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
 
 
 ```
@@ -3904,6 +4085,183 @@ output_filename <- paste0(getwd(),"/figures/", "birdDescYrs_", date_stamp, ".png
 ggsave(
   filename = output_filename,  # file name and extension
   plot     = birdDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Mammals
+
+```{r}
+
+# 1) Extract description year and count unique species per year
+desc_yearly <- mammalSEAsiaOccData %>%
+  mutate(
+    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
+    desc_year = as.integer(desc_year)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
+  count(desc_year, name = "n_species") %>%
+  arrange(desc_year) %>%
+  mutate(cum_species = cumsum(n_species))
+
+# 2) Scaling factor for secondary y-axis
+scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
+
+# 3) Plot
+mammalDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
+  geom_col(
+    aes(y = n_species * scale_factor),
+    fill = "grey80",
+    color = NA
+  ) +
+  geom_line(
+    aes(y = cum_species),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  scale_y_continuous(
+    name = "Cumulative number of species described",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Species described per year"
+    )
+  ) +
+  labs(
+    title = "Species Description Through Time",
+    x = "Year species was described"
+  ) +
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "mammalDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = mammalDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Plants
+
+```{r}
+
+# 1) Extract description year and count unique species per year
+desc_yearly <- plantSEAsiaOccData %>%
+  mutate(
+    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
+    desc_year = as.integer(desc_year)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
+  count(desc_year, name = "n_species") %>%
+  arrange(desc_year) %>%
+  mutate(cum_species = cumsum(n_species))
+
+# 2) Scaling factor for secondary y-axis
+scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
+
+# 3) Plot
+plantDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
+  geom_col(
+    aes(y = n_species * scale_factor),
+    fill = "grey80",
+    color = NA
+  ) +
+  geom_line(
+    aes(y = cum_species),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  scale_y_continuous(
+    name = "Cumulative number of species described",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Species described per year"
+    )
+  ) +
+  labs(
+    title = "Species Description Through Time",
+    x = "Year species was described"
+  ) +
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "plantDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = plantDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Squamates
+
+```{r}
+
+# 1) Extract description year and count unique species per year
+desc_yearly <- squamateSEAsiaOccData %>%
+  mutate(
+    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
+    desc_year = as.integer(desc_year)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
+  count(desc_year, name = "n_species") %>%
+  arrange(desc_year) %>%
+  mutate(cum_species = cumsum(n_species))
+
+# 2) Scaling factor for secondary y-axis
+scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
+
+# 3) Plot
+squamateDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
+  geom_col(
+    aes(y = n_species * scale_factor),
+    fill = "grey80",
+    color = NA
+  ) +
+  geom_line(
+    aes(y = cum_species),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  scale_y_continuous(
+    name = "Cumulative number of species described",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Species described per year"
+    )
+  ) +
+  labs(
+    title = "Species Description Through Time",
+    x = "Year species was described"
+  ) +
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "squamateDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = squamateDescYrsPlot,       # your ggplot object
   width    = 8,                          # width in inches (adjust as needed)
   height   = 6,                          # height in inches (adjust as needed)
   units    = "in",                        # units for width/height
