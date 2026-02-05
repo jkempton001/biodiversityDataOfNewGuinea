@@ -11,6 +11,8 @@ library(readxl)
 pngFrogsPage <- read_html("checklists/png_frogs_checklist.htm")
 ipFrogsPage <- read_html("checklists/ip_frogs_checklist.htm")
 endemicFrogsPage <- read_html("checklists/ng_frogs_endemic_checklist.htm")
+pngEndemicFrogsPage <- read_html("checklists/png_frogs_endemic_checklist.htm")
+ipEndemicFrogsPage <- read_html("checklists/ip_frogs_endemic_checklist.htm")
 
 pngFrogsBinomials <- pngFrogsPage %>%
   html_elements("div[class~='Species'] a") %>%
@@ -65,43 +67,86 @@ endemicFrogsBinomials <- endemicFrogsPage %>%
   distinct(binomial, .keep_all = TRUE) %>%
   select(binomial)
 
+pngEndemicFrogsBinomials <- pngEndemicFrogsPage %>%
+  html_elements("div[class~='Species'] a") %>%
+  html_text2() %>%
+  str_squish() %>%
+  tibble(full_name = .) %>%
+  mutate(
+    binomial = str_extract(
+      full_name,
+      "^[A-Z][a-z]+\\s+[a-z][a-z-]*"
+    )
+  ) %>%
+  filter(!is.na(binomial)) %>%
+  distinct(binomial, .keep_all = TRUE) %>%
+  select(binomial)
+
+ipEndemicFrogsBinomials <- ipEndemicFrogsPage %>%
+  html_elements("div[class~='Species'] a") %>%
+  html_text2() %>%
+  str_squish() %>%
+  tibble(full_name = .) %>%
+  mutate(
+    binomial = str_extract(
+      full_name,
+      "^[A-Z][a-z]+\\s+[a-z][a-z-]*"
+    )
+  ) %>%
+  filter(!is.na(binomial)) %>%
+  distinct(binomial, .keep_all = TRUE) %>%
+  select(binomial)
+
 pngFrogs <- pngFrogsBinomials %>%
   mutate(
-    endemic = NA,
+    ng_endemic = NA,
+    ip_endemic = NA,
+    png_endemic = NA,
     idn = NA,
     png = 1
   )
 
-# Relocate the new columns to their desired positions (e.g., after column 'A')
 pngFrogs <- pngFrogs %>%
-  relocate(endemic, idn, png, .after = binomial)
+  relocate(ng_endemic, ip_endemic, png_endemic, idn, png, .after = binomial)
 
 ipFrogs <- ipFrogsBinomials %>%
   mutate(
-    endemic = NA,
+    ng_endemic = NA,
+    ip_endemic = NA,
+    png_endemic = NA,
     idn = 1,
     png = NA
   )
 
-# Relocate the new columns to their desired positions (e.g., after column 'A')
 ipFrogs <- ipFrogs %>%
-  relocate(endemic, idn, png, .after = binomial)
+  relocate(ng_endemic, ip_endemic, png_endemic, idn, png, .after = binomial)
 
 # outer join of idpBirds and pngBirds
 ngFrogs <- full_join(ipFrogs, pngFrogs, by = "binomial") %>%
   mutate(
     idn = coalesce(idn.x, idn.y),
     png = coalesce(png.x, png.y),
-    endemic = coalesce(endemic.x, endemic.y),
+    ng_endemic = coalesce(ng_endemic.x, ng_endemic.y),
+    ip_endemic = coalesce(ip_endemic.x, ip_endemic.y),
+    png_endemic = coalesce(png_endemic.x, png_endemic.y),
     basionym_year = coalesce(basionym_year.x, basionym_year.y)
   ) %>%
-  select(binomial, endemic, idn, png, basionym_year)
+  select(binomial, ng_endemic, ip_endemic, png_endemic, idn, png, basionym_year)
 
 ngFrogs$idn[is.na(ngFrogs$idn)] <- 0
 ngFrogs$png[is.na(ngFrogs$png)] <- 0
-ngFrogs$endemic = 0
+ngFrogs$ng_endemic = 0
 ngFrogs <- ngFrogs %>%
-  mutate(endemic = ifelse(binomial %in% endemicFrogsBinomials$binomial, 1, endemic))
+  mutate(ng_endemic = ifelse(binomial %in% endemicFrogsBinomials$binomial, 1, ng_endemic))
+ngFrogs$ip_endemic = 0
+ngFrogs <- ngFrogs %>%
+  mutate(ip_endemic = ifelse(binomial %in% ipEndemicFrogsBinomials$binomial, 1, ip_endemic))
+ngFrogs$png_endemic = 0
+ngFrogs <- ngFrogs %>%
+  mutate(png_endemic = ifelse(binomial %in% pngEndemicFrogsBinomials$binomial, 1, png_endemic))
+
+
+
 
 write.csv(ngFrogs,"checklists/ngFrogsChecklist.csv")
 
@@ -123,7 +168,7 @@ binomial <- rows %>%
   html_text2() %>%
   str_squish()
 
-endemic <- rows %>%
+ng_endemic <- rows %>%
   html_element("td:nth-child(3)") %>%
   html_text2() %>%
   str_squish() %>%
@@ -132,7 +177,7 @@ endemic <- rows %>%
 
 ngBirds <- tibble(
   binomial = binomial,
-  endemic  = endemic
+  ng_endemic  = ng_endemic
 ) %>%
   filter(!is.na(binomial), binomial != "")
 
@@ -147,9 +192,6 @@ wpBinomials <- wpBirdsPage %>%
   html_nodes("table.table i") %>%
   html_text()
 
-ngBirds = data.frame(ngBinomials)
-ngBirds <- ngBirds %>%
-  rename(binomial = ngBinomials)
 pngBirds = data.frame(pngBinomials)
 pngBirds <- pngBirds %>%
   rename(binomial = pngBinomials)
@@ -170,7 +212,7 @@ ngBirds <- ngBirds %>%
 
 pngBirds <- pngBirds %>%
   mutate(
-    endemic = NA,
+    ng_endemic = NA,
     idn = NA,
     png = 1,
     basionym_year = NA
@@ -178,7 +220,7 @@ pngBirds <- pngBirds %>%
 
 ppBirds <- ppBirds %>%
   mutate(
-    endemic = NA,
+    ng_endemic = NA,
     idn = 1,
     png = NA,
     basionym_year = NA
@@ -186,7 +228,7 @@ ppBirds <- ppBirds %>%
 
 wpBirds <- wpBirds %>%
   mutate(
-    endemic = NA,
+    ng_endemic = NA,
     idn = 1,
     png = NA,
     basionym_year = NA
@@ -202,16 +244,16 @@ ippngBirds <- full_join(ipBirds, pngBirds, by = "binomial") %>%
   mutate(
     idn = coalesce(idn.x, idn.y),
     png = coalesce(png.x, png.y),
-    endemic = coalesce(endemic.x, endemic.y),
+    ng_endemic = coalesce(ng_endemic.x, ng_endemic.y),
     basionym_year = coalesce(basionym_year.x, basionym_year.y)
   ) %>%
-  select(binomial, endemic, idn, png, basionym_year)
+  select(binomial, ng_endemic, idn, png, basionym_year)
 
 ngChecklist <- ippngBirds %>%
   filter(binomial %in% ngBirds$binomial) %>%
-  select(-endemic) %>%
-  left_join(ngBirds %>% select(binomial, endemic), by = "binomial") %>%
-  select(binomial, endemic, idn, png, basionym_year)
+  select(-ng_endemic) %>%
+  left_join(ngBirds %>% select(binomial, ng_endemic), by = "binomial") %>%
+  select(binomial, ng_endemic, idn, png, basionym_year)
 
 ngChecklist$idn[is.na(ngChecklist$idn)] <- 0
 ngChecklist$png[is.na(ngChecklist$png)] <- 0
@@ -224,12 +266,40 @@ ngChecklist <- ngChecklist %>%
                       basionym_year_hbw = colnames(hbwChecklist)[9]), 
              by = "binomial") %>%
   mutate(basionym_year = coalesce(basionym_year_hbw, basionym_year)) %>%
-  select(binomial, endemic, idn, png, basionym_year)
+  select(binomial, ng_endemic, idn, png, basionym_year)
 
 ngChecklist <- ngChecklist %>%
   distinct(binomial, .keep_all = TRUE)
 
 ngChecklist <- ngChecklist %>%
   mutate(basionym_year = as.numeric(gsub("[^0-9]", "", basionym_year)))
+
+ngChecklist <- ngChecklist %>%
+  mutate(
+    ip_endemic = NA,
+    png_endemic = NA
+  )
+
+ngChecklist <- ngChecklist %>%
+  relocate(ip_endemic, png_endemic, .after = ng_endemic)
+
+
+ngChecklist <- ngChecklist %>%
+  mutate(
+    ip_endemic = case_when(
+      ng_endemic == 1 & idn == 1 & png == 0 ~ 1,
+      ng_endemic == 1 & idn == 0 & png == 1 ~ 0,
+      TRUE ~ ip_endemic
+    ),
+    png_endemic = case_when(
+      ng_endemic == 1 & idn == 1 & png == 0 ~ 0,
+      ng_endemic == 1 & idn == 0 & png == 1 ~ 1,
+      TRUE ~ png_endemic
+    )
+  )
+
+ngChecklist$ip_endemic[is.na(ngChecklist$ip_endemic)] <- 0
+ngChecklist$png_endemic[is.na(ngChecklist$png_endemic)] <- 0
+
 
 write.csv(ngChecklist,"checklists/ngBirdsChecklist.csv")

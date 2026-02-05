@@ -41,8 +41,6 @@ library(scales)
 
 # PLOTTING PREREQUISITES
 
-## Pre-requisites
-
 ```{r}
 
 ## Create New Guinea map ----
@@ -97,6 +95,17 @@ regionGrid <- regionPoly |>
   st_sf() |>
   dplyr::mutate(cellid = dplyr::row_number())
 
+
+```
+
+
+# LOAD SPECIES CHECKLISTS
+
+```{r}
+
+frogsChecklist = read.csv("checklists/ngFrogsChecklist.csv")
+birdsChecklist = read.csv("checklists/ngBirdsChecklist.csv")
+plantsChecklist = read.csv("checklists/ngPlantsChecklist.csv")
 
 ```
 
@@ -2399,9 +2408,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```
 
-# PLOTTING
-
-## Load taxon data
+# LOAD TAXON DATA
 
 ```{r}
 
@@ -2413,6 +2420,8 @@ load("input_dataframes/squamatesData_20260202.RData")
 
 
 ```
+
+# PLOTTING
 
 ## Fig. 1: Heatmaps of occurrence data
 
@@ -3680,6 +3689,782 @@ ggplot() +
 ```
 
 
+## Fig 7: Cumulative description records and year-frequency histograms
+
+### Frogs
+
+```{r}
+
+# 1) Prep: one row per species-year, plus PNG/IDN flags + endemic flags
+frog_years <- frogsChecklist %>%
+  mutate(
+    desc_year   = as.integer(basionym_year),
+    png_flag    = as.integer(png == 1),
+    idn_flag    = as.integer(idn == 1),
+    ng_endemic  = as.integer(ng_endemic == 1),
+    png_endemic = as.integer(png_endemic == 1),
+    ip_endemic  = as.integer(ip_endemic == 1)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(binomial, desc_year, .keep_all = TRUE)
+
+# 2) Annual counts + cumulative counts for each series (LINES)
+frogDescriptionYrs <- frog_years %>%
+  group_by(desc_year) %>%
+  summarise(
+    n_total = n_distinct(binomial),
+    n_png   = n_distinct(binomial[png_flag == 1]),
+    n_idn   = n_distinct(binomial[idn_flag == 1]),
+    .groups = "drop"
+  ) %>%
+  arrange(desc_year) %>%
+  mutate(
+    cum_total = cumsum(n_total),
+    cum_png   = cumsum(n_png),
+    cum_idn   = cumsum(n_idn)
+  )
+
+# 3) Stacked bar data: mutually exclusive endemic category
+frogBars <- frog_years %>%
+  mutate(
+    endemic_cat = case_when(
+      ip_endemic  == 1 ~ "Indonesian Papua endemic",
+      png_endemic == 1 ~ "Papua New Guinea endemic",
+      ng_endemic  == 1 ~ "New Guinea endemic",
+      TRUE             ~ "Not New Guinea endemic"
+    ),
+    endemic_cat = factor(
+      endemic_cat,
+      levels = c(
+        "Not New Guinea endemic",     # black (bottom)
+        "New Guinea endemic",         # grey
+        "Papua New Guinea endemic",   # light blue
+        "Indonesian Papua endemic"    # dark blue (top)
+      )
+    )
+  ) %>%
+  count(desc_year, endemic_cat, name = "n_species")
+
+# 4) Scaling factor for secondary y-axis
+annual_totals <- frogBars %>%
+  group_by(desc_year) %>%
+  summarise(n_total_bar = sum(n_species), .groups = "drop")
+
+scale_factor <- max(frogDescriptionYrs$cum_total, na.rm = TRUE) /
+  max(annual_totals$n_total_bar, na.rm = TRUE)
+
+# 5) Long format for cumulative curves
+frog_cum_long <- frogDescriptionYrs %>%
+  select(desc_year, cum_total, cum_png, cum_idn) %>%
+  pivot_longer(
+    cols = starts_with("cum_"),
+    names_to = "series",
+    values_to = "cum_species"
+  ) %>%
+  mutate(
+    series = recode(
+      series,
+      cum_total = "New Guinea",
+      cum_png   = "Papua New Guinea",
+      cum_idn   = "Indonesian Papua"
+    ),
+    series = factor(
+      series,
+      levels = c(
+        "New Guinea",
+        "Papua New Guinea",
+        "Indonesian Papua",
+        "Non-endemic"
+      )
+    )
+  )
+
+# 6) Plot
+frogDescYrsPlot <- ggplot() +
+
+  # stacked bars (no fill legend)
+geom_col(
+  data = frogBars,
+  aes(x = desc_year, y = n_species * scale_factor, fill = endemic_cat),
+  color = NA,
+  alpha = 0.7,
+  position = position_stack(reverse = TRUE)
+) +
+
+  # cumulative curves
+geom_step(
+  data = frog_cum_long,
+  aes(x = desc_year, y = cum_species, color = series),
+  linewidth = 1.2,
+  direction = "hv"
+) +
+
+  # dummy geom to add "Non-endemic" to colour legend
+geom_blank(
+  data = tibble(
+    desc_year = NA,
+    cum_species = NA,
+    series = "Non-endemic"
+  ),
+  aes(x = desc_year, y = cum_species, color = series)
+) +
+
+  scale_fill_manual(
+    values = c(
+      "Not New Guinea endemic"     = "black",
+      "New Guinea endemic"         = "grey60",
+      "Papua New Guinea endemic"   = "#A6CEE3",
+      "Indonesian Papua endemic"   = "#1F78B4"
+    ),
+    guide = "none"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "New Guinea"        = "grey60",
+      "Papua New Guinea"  = "#A6CEE3",
+      "Indonesian Papua"  = "#1F78B4",
+      "Non-endemic"       = "black"
+    )
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species described",
+    limits = c(0, NA),
+    expand = c(0, 0),
+    sec.axis = sec_axis(~ . / scale_factor, name = "Annual species described")
+  ) +
+
+  labs(
+    x = "Description year",
+    color = NULL
+  ) +
+
+  theme_minimal() +
+  coord_cartesian(expand = FALSE) +
+
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.6),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+frogDescYrsPlot
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "frogDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = frogDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+### Birds
+
+```{r}
+
+# 1) Prep: one row per species-year, plus PNG/IDN flags + endemic flags
+bird_years <- birdsChecklist %>%
+  mutate(
+    desc_year   = as.integer(basionym_year),
+    png_flag    = as.integer(png == 1),
+    idn_flag    = as.integer(idn == 1),
+    ng_endemic  = as.integer(ng_endemic == 1),
+    png_endemic = as.integer(png_endemic == 1),
+    ip_endemic  = as.integer(ip_endemic == 1)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(binomial, desc_year, .keep_all = TRUE)
+
+# 2) Annual counts + cumulative counts for each series (LINES)
+birdDescriptionYrs <- bird_years %>%
+  group_by(desc_year) %>%
+  summarise(
+    n_total = n_distinct(binomial),
+    n_png   = n_distinct(binomial[png_flag == 1]),
+    n_idn   = n_distinct(binomial[idn_flag == 1]),
+    .groups = "drop"
+  ) %>%
+  arrange(desc_year) %>%
+  mutate(
+    cum_total = cumsum(n_total),
+    cum_png   = cumsum(n_png),
+    cum_idn   = cumsum(n_idn)
+  )
+
+# 3) Stacked bar data: mutually exclusive endemic category
+birdBars <- bird_years %>%
+  mutate(
+    endemic_cat = case_when(
+      ip_endemic  == 1 ~ "Indonesian Papua endemic",
+      png_endemic == 1 ~ "Papua New Guinea endemic",
+      ng_endemic  == 1 ~ "New Guinea endemic",
+      TRUE             ~ "Not New Guinea endemic"
+    ),
+    endemic_cat = factor(
+      endemic_cat,
+      levels = c(
+        "Not New Guinea endemic",     # black (bottom)
+        "New Guinea endemic",         # grey
+        "Papua New Guinea endemic",   # light blue
+        "Indonesian Papua endemic"    # dark blue (top)
+      )
+    )
+  ) %>%
+  count(desc_year, endemic_cat, name = "n_species")
+
+# 4) Scaling factor for secondary y-axis
+annual_totals <- birdBars %>%
+  group_by(desc_year) %>%
+  summarise(n_total_bar = sum(n_species), .groups = "drop")
+
+scale_factor <- max(birdDescriptionYrs$cum_total, na.rm = TRUE) /
+  max(annual_totals$n_total_bar, na.rm = TRUE)
+
+# 5) Long format for cumulative curves
+bird_cum_long <- birdDescriptionYrs %>%
+  select(desc_year, cum_total, cum_png, cum_idn) %>%
+  pivot_longer(
+    cols = starts_with("cum_"),
+    names_to = "series",
+    values_to = "cum_species"
+  ) %>%
+  mutate(
+    series = recode(
+      series,
+      cum_total = "New Guinea",
+      cum_png   = "Papua New Guinea",
+      cum_idn   = "Indonesian Papua"
+    ),
+    series = factor(
+      series,
+      levels = c(
+        "New Guinea",
+        "Papua New Guinea",
+        "Indonesian Papua",
+        "Non-endemic"
+      )
+    )
+  )
+
+# 6) Plot
+birdDescYrsPlot <- ggplot() +
+
+  # stacked bars (no fill legend)
+geom_col(
+  data = birdBars,
+  aes(x = desc_year, y = n_species * scale_factor, fill = endemic_cat),
+  color = NA,
+  alpha = 0.7,
+  position = position_stack(reverse = TRUE)
+) +
+
+  # cumulative curves
+geom_step(
+  data = bird_cum_long,
+  aes(x = desc_year, y = cum_species, color = series),
+  linewidth = 1.2,
+  direction = "hv"
+) +
+
+  # dummy geom to add "Non-endemic" to colour legend
+geom_blank(
+  data = tibble(
+    desc_year = NA,
+    cum_species = NA,
+    series = "Non-endemic"
+  ),
+  aes(x = desc_year, y = cum_species, color = series)
+) +
+
+  scale_fill_manual(
+    values = c(
+      "Not New Guinea endemic"     = "black",
+      "New Guinea endemic"         = "grey60",
+      "Papua New Guinea endemic"   = "#A6CEE3",
+      "Indonesian Papua endemic"   = "#1F78B4"
+    ),
+    guide = "none"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "New Guinea"        = "grey60",
+      "Papua New Guinea"  = "#A6CEE3",
+      "Indonesian Papua"  = "#1F78B4",
+      "Non-endemic"       = "black"
+    )
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species described",
+    limits = c(0, NA),
+    expand = c(0, 0),
+    sec.axis = sec_axis(~ . / scale_factor, name = "Annual species described")
+  ) +
+
+  labs(
+    x = "Description year",
+    color = NULL
+  ) +
+
+  theme_minimal() +
+  coord_cartesian(expand = FALSE) +
+
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.6),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+birdDescYrsPlot
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "birdDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = birdDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+```
+
+### Mammals
+
+```{r}
+
+# 1) Prep: one row per species-year, plus PNG/IDN flags + endemic flags
+mammal_years <- mammalsChecklist %>%
+  mutate(
+    desc_year   = as.integer(basionym_year),
+    png_flag    = as.integer(png == 1),
+    idn_flag    = as.integer(idn == 1),
+    ng_endemic  = as.integer(ng_endemic == 1),
+    png_endemic = as.integer(png_endemic == 1),
+    ip_endemic  = as.integer(ip_endemic == 1)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(binomial, desc_year, .keep_all = TRUE)
+
+# 2) Annual counts + cumulative counts for each series (LINES)
+mammalDescriptionYrs <- mammal_years %>%
+  group_by(desc_year) %>%
+  summarise(
+    n_total = n_distinct(binomial),
+    n_png   = n_distinct(binomial[png_flag == 1]),
+    n_idn   = n_distinct(binomial[idn_flag == 1]),
+    .groups = "drop"
+  ) %>%
+  arrange(desc_year) %>%
+  mutate(
+    cum_total = cumsum(n_total),
+    cum_png   = cumsum(n_png),
+    cum_idn   = cumsum(n_idn)
+  )
+
+# 3) Stacked bar data: mutually exclusive endemic category
+mammalBars <- mammal_years %>%
+  mutate(
+    endemic_cat = case_when(
+      ip_endemic  == 1 ~ "Indonesian Papua endemic",
+      png_endemic == 1 ~ "Papua New Guinea endemic",
+      ng_endemic  == 1 ~ "New Guinea endemic",
+      TRUE             ~ "Not New Guinea endemic"
+    ),
+    endemic_cat = factor(
+      endemic_cat,
+      levels = c(
+        "Not New Guinea endemic",     # black (bottom)
+        "New Guinea endemic",         # grey
+        "Papua New Guinea endemic",   # light blue
+        "Indonesian Papua endemic"    # dark blue (top)
+      )
+    )
+  ) %>%
+  count(desc_year, endemic_cat, name = "n_species")
+
+# 4) Scaling factor for secondary y-axis
+annual_totals <- mammalBars %>%
+  group_by(desc_year) %>%
+  summarise(n_total_bar = sum(n_species), .groups = "drop")
+
+scale_factor <- max(mammalDescriptionYrs$cum_total, na.rm = TRUE) /
+  max(annual_totals$n_total_bar, na.rm = TRUE)
+
+# 5) Long format for cumulative curves
+mammal_cum_long <- mammalDescriptionYrs %>%
+  select(desc_year, cum_total, cum_png, cum_idn) %>%
+  pivot_longer(
+    cols = starts_with("cum_"),
+    names_to = "series",
+    values_to = "cum_species"
+  ) %>%
+  mutate(
+    series = recode(
+      series,
+      cum_total = "New Guinea",
+      cum_png   = "Papua New Guinea",
+      cum_idn   = "Indonesian Papua"
+    ),
+    series = factor(
+      series,
+      levels = c(
+        "New Guinea",
+        "Papua New Guinea",
+        "Indonesian Papua",
+        "Non-endemic"
+      )
+    )
+  )
+
+# 6) Plot
+mammalDescYrsPlot <- ggplot() +
+
+  # stacked bars (no fill legend)
+geom_col(
+  data = mammalBars,
+  aes(x = desc_year, y = n_species * scale_factor, fill = endemic_cat),
+  color = NA,
+  alpha = 0.7,
+  position = position_stack(reverse = TRUE)
+) +
+
+  # cumulative curves
+geom_step(
+  data = mammal_cum_long,
+  aes(x = desc_year, y = cum_species, color = series),
+  linewidth = 1.2,
+  direction = "hv"
+) +
+
+  # dummy geom to add "Non-endemic" to colour legend
+geom_blank(
+  data = tibble(
+    desc_year = NA,
+    cum_species = NA,
+    series = "Non-endemic"
+  ),
+  aes(x = desc_year, y = cum_species, color = series)
+) +
+
+  scale_fill_manual(
+    values = c(
+      "Not New Guinea endemic"     = "black",
+      "New Guinea endemic"         = "grey60",
+      "Papua New Guinea endemic"   = "#A6CEE3",
+      "Indonesian Papua endemic"   = "#1F78B4"
+    ),
+    guide = "none"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "New Guinea"        = "grey60",
+      "Papua New Guinea"  = "#A6CEE3",
+      "Indonesian Papua"  = "#1F78B4",
+      "Non-endemic"       = "black"
+    )
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species described",
+    limits = c(0, NA),
+    expand = c(0, 0),
+    sec.axis = sec_axis(~ . / scale_factor, name = "Annual species described")
+  ) +
+
+  labs(
+    x = "Description year",
+    color = NULL
+  ) +
+
+  theme_minimal() +
+  coord_cartesian(expand = FALSE) +
+
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.6),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+mammalDescYrsPlot
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "mammalDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = mammalDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+```
+
+### Plants
+
+```{r}
+
+# 1) Prep: one row per species-year, plus PNG/IDN flags + endemic flags
+plant_years <- plantsChecklist %>%
+  mutate(
+    desc_year   = as.integer(basionym_year),
+    png_flag    = as.integer(png == 1),
+    idn_flag    = as.integer(idn == 1),
+    ng_endemic  = as.integer(ng_endemic == 1),
+    png_endemic = as.integer(png_endemic == 1),
+    ip_endemic  = as.integer(ip_endemic == 1)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(binomial, desc_year, .keep_all = TRUE)
+
+# 2) Annual counts + cumulative counts for each series (LINES)
+plantDescriptionYrs <- plant_years %>%
+  group_by(desc_year) %>%
+  summarise(
+    n_total = n_distinct(binomial),
+    n_png   = n_distinct(binomial[png_flag == 1]),
+    n_idn   = n_distinct(binomial[idn_flag == 1]),
+    .groups = "drop"
+  ) %>%
+  arrange(desc_year) %>%
+  mutate(
+    cum_total = cumsum(n_total),
+    cum_png   = cumsum(n_png),
+    cum_idn   = cumsum(n_idn)
+  )
+
+# 3) Stacked bar data: mutually exclusive endemic category
+plantBars <- plant_years %>%
+  mutate(
+    endemic_cat = case_when(
+      ip_endemic  == 1 ~ "Indonesian Papua endemic",
+      png_endemic == 1 ~ "Papua New Guinea endemic",
+      ng_endemic  == 1 ~ "New Guinea endemic",
+      TRUE             ~ "Not New Guinea endemic"
+    ),
+    endemic_cat = factor(
+      endemic_cat,
+      levels = c(
+        "Not New Guinea endemic",     # black (bottom)
+        "New Guinea endemic",         # grey
+        "Papua New Guinea endemic",   # light blue
+        "Indonesian Papua endemic"    # dark blue (top)
+      )
+    )
+  ) %>%
+  count(desc_year, endemic_cat, name = "n_species")
+
+# 4) Scaling factor for secondary y-axis
+annual_totals <- plantBars %>%
+  group_by(desc_year) %>%
+  summarise(n_total_bar = sum(n_species), .groups = "drop")
+
+scale_factor <- max(plantDescriptionYrs$cum_total, na.rm = TRUE) /
+  max(annual_totals$n_total_bar, na.rm = TRUE)
+
+# 5) Long format for cumulative curves
+plant_cum_long <- plantDescriptionYrs %>%
+  select(desc_year, cum_total, cum_png, cum_idn) %>%
+  pivot_longer(
+    cols = starts_with("cum_"),
+    names_to = "series",
+    values_to = "cum_species"
+  ) %>%
+  mutate(
+    series = recode(
+      series,
+      cum_total = "New Guinea",
+      cum_png   = "Papua New Guinea",
+      cum_idn   = "Indonesian Papua"
+    ),
+    series = factor(
+      series,
+      levels = c(
+        "New Guinea",
+        "Papua New Guinea",
+        "Indonesian Papua",
+        "Non-endemic"
+      )
+    )
+  )
+
+# 6) Plot
+plantDescYrsPlot <- ggplot() +
+
+  # stacked bars (no fill legend)
+geom_col(
+  data = plantBars,
+  aes(x = desc_year, y = n_species * scale_factor, fill = endemic_cat),
+  color = NA,
+  alpha = 0.7,
+  position = position_stack(reverse = TRUE)
+) +
+
+  # cumulative curves
+geom_step(
+  data = plant_cum_long,
+  aes(x = desc_year, y = cum_species, color = series),
+  linewidth = 1.2,
+  direction = "hv"
+) +
+
+  # dummy geom to add "Non-endemic" to colour legend
+geom_blank(
+  data = tibble(
+    desc_year = NA,
+    cum_species = NA,
+    series = "Non-endemic"
+  ),
+  aes(x = desc_year, y = cum_species, color = series)
+) +
+
+  scale_fill_manual(
+    values = c(
+      "Not New Guinea endemic"     = "black",
+      "New Guinea endemic"         = "grey60",
+      "Papua New Guinea endemic"   = "#A6CEE3",
+      "Indonesian Papua endemic"   = "#1F78B4"
+    ),
+    guide = "none"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "New Guinea"        = "grey60",
+      "Papua New Guinea"  = "#A6CEE3",
+      "Indonesian Papua"  = "#1F78B4",
+      "Non-endemic"       = "black"
+    )
+  ) +
+
+  scale_y_continuous(
+    name = "Cumulative species described",
+    limits = c(0, NA),
+    expand = c(0, 0),
+    sec.axis = sec_axis(~ . / scale_factor, name = "Annual species described")
+  ) +
+
+  labs(
+    x = "Description year",
+    color = NULL
+  ) +
+
+  theme_minimal() +
+  coord_cartesian(expand = FALSE) +
+
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line        = element_line(color = "grey80"),
+    axis.ticks       = element_line(color = "grey80"),
+    legend.position  = c(0.05, 0.6),
+    legend.justification = c(0, 0.5),
+    legend.background = element_blank()
+  )
+
+plantDescYrsPlot
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "plantDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = plantDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+```
+
+### Squamates
+
+```{r}
+
+# 1) Extract description year and count unique species per year
+desc_yearly <- squamateSEAsiaOccData %>%
+  mutate(
+    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
+    desc_year = as.integer(desc_year)
+  ) %>%
+  filter(!is.na(desc_year)) %>%
+  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
+  count(desc_year, name = "n_species") %>%
+  arrange(desc_year) %>%
+  mutate(cum_species = cumsum(n_species))
+
+# 2) Scaling factor for secondary y-axis
+scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
+
+# 3) Plot
+squamateDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
+  geom_col(
+    aes(y = n_species * scale_factor),
+    fill = "grey80",
+    color = NA
+  ) +
+  geom_line(
+    aes(y = cum_species),
+    linewidth = 1.2,
+    color = "#8ECAE6"
+  ) +
+  scale_y_continuous(
+    name = "Cumulative number of species described",
+    sec.axis = sec_axis(
+      ~ . / scale_factor,
+      name = "Species described per year"
+    )
+  ) +
+  labs(
+    title = "Species Description Through Time",
+    x = "Year species was described"
+  ) +
+  theme_minimal()
+
+# Generate date stamp and save cleaned dataset ----
+date_stamp <- format(Sys.Date(), "%Y%m%d")
+output_filename <- paste0(getwd(),"/figures/", "squamateDescYrs_", date_stamp, ".png")
+
+ggsave(
+  filename = output_filename,  # file name and extension
+  plot     = squamateDescYrsPlot,       # your ggplot object
+  width    = 8,                          # width in inches (adjust as needed)
+  height   = 6,                          # height in inches (adjust as needed)
+  units    = "in",                        # units for width/height
+  dpi      = 300                          # resolution; affects rasterized elements
+)
+
+```
+
+
+
 ## Fig 6: Cumulative occurrence records and year-frequency histograms
 
 ### Frogs
@@ -4836,355 +5621,6 @@ ggsave(
 
 
 
-## Fig 7: Cumulative description records and year-frequency histograms
-
-### Frogs
-
-```{r}
-frogDescriptionYrs = read_csv("ngAmphibiansInventory.csv")
-
-# 1) Summarise descriptions by year (bars) + cumulative (line)
-desc_yearly <- frogDescriptionYrs %>%
-  mutate(desc_year = as.integer(year)) %>%      # assumes your column is literally named 'year'
-  filter(!is.na(desc_year)) %>%
-  distinct(binomial, desc_year) %>%              # ensures no duplicated species entries
-  count(desc_year, name = "n_species") %>%
-  arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species))
-
-# 2) Scaling factor for secondary y-axis
-scale_factor <- max(desc_yearly_species$cum_species) / max(desc_yearly_species$n_species)
-
-
-
-frogCollYrsPlot <- ggplot() +
-  
-  geom_col(
-    data = frogCollYrs,
-    aes(
-      x = year,
-      y = n * scale_factor,
-      fill = countryCode
-    ),
-    color = NA
-  ) +
-  
-  geom_line(
-    data = frogCollTotals,
-    aes(x = year, y = cum_n),
-    linewidth = 1.2,
-    color = "#cccccc",
-    alpha = 0.7
-  ) +
-  
-  scale_fill_manual(
-    values = c(
-      "PG" = "#8ECAE6",
-      "ID" = "#CFEAF5"
-    ),
-    name = "Country"
-  ) +
-  
-scale_y_continuous(
-  name = "Cumulative occurrence records",
-  limits = c(0, NA),          # ensure baseline at 0
-  expand = expansion(mult = 0),# remove padding so x-axis sits at the base
-  sec.axis = sec_axis(
-    ~ . / scale_factor,
-    name = "Annual occurrence records"
-  )
-) +
-  
-  labs(x = "Year") +
-  
-theme_minimal() +
-guides(fill = guide_legend(title = NULL)) +
-theme(
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.line        = element_line(color = "grey80"),
-  axis.ticks       = element_line(color = "grey80"),
-  legend.position  = c(0.05, 0.5),
-  legend.justification = c(0, 0.5),
-  legend.background = element_blank()
-)
-
-
-
-# 3) Plot
-frogDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
-  geom_col(
-    aes(y = n_species * scale_factor),
-    fill = "grey80",
-    color = NA
-  ) +
-  geom_line(
-    aes(y = cum_species),
-    linewidth = 1.2,
-    color = "#8ECAE6"
-  ) +
-  scale_y_continuous(
-    name = "Cumulative number of species described",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Species described per year"
-    )
-  ) +
-  labs(
-    title = "Species Description Through Time",
-    x = "Year species was described"
-  ) +
-  theme_minimal()
-
-# Generate date stamp and save cleaned dataset ----
-date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "frogDescYrs_", date_stamp, ".png")
-
-ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = frogDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
-)
-
-```
-
-### Birds
-
-```{r}
-
-birdDescriptionYrs = read_csv("ngBirdsInventory.csv")
-
-# 1) Summarise descriptions by year (bars) + cumulative (line)
-desc_yearly <- birdDescriptionYrs %>%
-  mutate(desc_year = as.integer(year)) %>%      # assumes your column is literally named 'year'
-  filter(!is.na(desc_year)) %>%
-  distinct(ScientificName, desc_year) %>%              # ensures no duplicated species entries
-  count(desc_year, name = "n_species") %>%
-  arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species))
-
-# 2) Scaling factor for secondary y-axis
-scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
-
-# 3) Plot
-birdDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
-  geom_col(
-    aes(y = n_species * scale_factor),
-    fill = "grey80",
-    color = NA
-  ) +
-  geom_line(
-    aes(y = cum_species),
-    linewidth = 1.2,
-    color = "#8ECAE6"
-  ) +
-  scale_y_continuous(
-    name = "Cumulative number of species described",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Species described per year"
-    )
-  ) +
-  labs(
-    title = "Species Description Through Time",
-    x = "Year species was described"
-  ) +
-  theme_minimal()
-
-# Generate date stamp and save cleaned dataset ----
-date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "birdDescYrs_", date_stamp, ".png")
-
-ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = birdDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
-)
-
-```
-
-### Mammals
-
-```{r}
-
-# 1) Extract description year and count unique species per year
-desc_yearly <- mammalSEAsiaOccData %>%
-  mutate(
-    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
-    desc_year = as.integer(desc_year)
-  ) %>%
-  filter(!is.na(desc_year)) %>%
-  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
-  count(desc_year, name = "n_species") %>%
-  arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species))
-
-# 2) Scaling factor for secondary y-axis
-scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
-
-# 3) Plot
-mammalDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
-  geom_col(
-    aes(y = n_species * scale_factor),
-    fill = "grey80",
-    color = NA
-  ) +
-  geom_line(
-    aes(y = cum_species),
-    linewidth = 1.2,
-    color = "#8ECAE6"
-  ) +
-  scale_y_continuous(
-    name = "Cumulative number of species described",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Species described per year"
-    )
-  ) +
-  labs(
-    title = "Species Description Through Time",
-    x = "Year species was described"
-  ) +
-  theme_minimal()
-
-# Generate date stamp and save cleaned dataset ----
-date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "mammalDescYrs_", date_stamp, ".png")
-
-ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = mammalDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
-)
-
-```
-
-### Plants
-
-```{r}
-
-# 1) Extract description year and count unique species per year
-desc_yearly <- plantSEAsiaOccData %>%
-  mutate(
-    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
-    desc_year = as.integer(desc_year)
-  ) %>%
-  filter(!is.na(desc_year)) %>%
-  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
-  count(desc_year, name = "n_species") %>%
-  arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species))
-
-# 2) Scaling factor for secondary y-axis
-scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
-
-# 3) Plot
-plantDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
-  geom_col(
-    aes(y = n_species * scale_factor),
-    fill = "grey80",
-    color = NA
-  ) +
-  geom_line(
-    aes(y = cum_species),
-    linewidth = 1.2,
-    color = "#8ECAE6"
-  ) +
-  scale_y_continuous(
-    name = "Cumulative number of species described",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Species described per year"
-    )
-  ) +
-  labs(
-    title = "Species Description Through Time",
-    x = "Year species was described"
-  ) +
-  theme_minimal()
-
-# Generate date stamp and save cleaned dataset ----
-date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "plantDescYrs_", date_stamp, ".png")
-
-ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = plantDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
-)
-
-```
-
-### Squamates
-
-```{r}
-
-# 1) Extract description year and count unique species per year
-desc_yearly <- squamateSEAsiaOccData %>%
-  mutate(
-    desc_year = str_extract(authority, "(?<!\\d)(17\\d{2}|18\\d{2}|19\\d{2}|20\\d{2})(?!\\d)"),
-    desc_year = as.integer(desc_year)
-  ) %>%
-  filter(!is.na(desc_year)) %>%
-  distinct(sp, desc_year) %>%   # change 'species' if your column name differs
-  count(desc_year, name = "n_species") %>%
-  arrange(desc_year) %>%
-  mutate(cum_species = cumsum(n_species))
-
-# 2) Scaling factor for secondary y-axis
-scale_factor <- max(desc_yearly$cum_species) / max(desc_yearly$n_species)
-
-# 3) Plot
-squamateDescYrsPlot = ggplot(desc_yearly, aes(x = desc_year)) +
-  geom_col(
-    aes(y = n_species * scale_factor),
-    fill = "grey80",
-    color = NA
-  ) +
-  geom_line(
-    aes(y = cum_species),
-    linewidth = 1.2,
-    color = "#8ECAE6"
-  ) +
-  scale_y_continuous(
-    name = "Cumulative number of species described",
-    sec.axis = sec_axis(
-      ~ . / scale_factor,
-      name = "Species described per year"
-    )
-  ) +
-  labs(
-    title = "Species Description Through Time",
-    x = "Year species was described"
-  ) +
-  theme_minimal()
-
-# Generate date stamp and save cleaned dataset ----
-date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "squamateDescYrs_", date_stamp, ".png")
-
-ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = squamateDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
-)
-
-```
 
 ## Fig S1: Raw cleaned occurrence data
 ```{r}
