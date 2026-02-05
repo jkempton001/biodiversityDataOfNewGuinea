@@ -8,9 +8,11 @@ library(dplyr)
 library(readxl)
 
 # point to the saved HTML file
-page <- read_html("ngAmphibiansInventory.htm")
+pngFrogsPage <- read_html("checklists/png_frogs_checklist.htm")
+ipFrogsPage <- read_html("checklists/ip_frogs_checklist.htm")
+endemicFrogsPage <- read_html("checklists/ng_frogs_endemic_checklist.htm")
 
-binomial_tbl <- page %>%
+pngFrogsBinomials <- pngFrogsPage %>%
   html_elements("div[class~='Species'] a") %>%
   html_text2() %>%
   str_squish() %>%
@@ -20,67 +22,214 @@ binomial_tbl <- page %>%
       full_name,
       "^[A-Z][a-z]+\\s+[a-z][a-z-]*"
     ),
-    year = str_extract(
+    basionym_year = str_extract(
       full_name,
       "\\b(17|18|19|20)\\d{2}\\b"
     ) %>% as.integer()
   ) %>%
   filter(!is.na(binomial)) %>%
   distinct(binomial, .keep_all = TRUE) %>%
-  select(binomial, year)
+  select(binomial, basionym_year)
 
-binomial_tbl
+ipFrogsBinomials <- ipFrogsPage %>%
+  html_elements("div[class~='Species'] a") %>%
+  html_text2() %>%
+  str_squish() %>%
+  tibble(full_name = .) %>%
+  mutate(
+    binomial = str_extract(
+      full_name,
+      "^[A-Z][a-z]+\\s+[a-z][a-z-]*"
+    ),
+    basionym_year = str_extract(
+      full_name,
+      "\\b(17|18|19|20)\\d{2}\\b"
+    ) %>% as.integer()
+  ) %>%
+  filter(!is.na(binomial)) %>%
+  distinct(binomial, .keep_all = TRUE) %>%
+  select(binomial, basionym_year)
 
-## BIRDS -- the below code is very dodgy for creating checklist. Review to do properly at future date.
+endemicFrogsBinomials <- endemicFrogsPage %>%
+  html_elements("div[class~='Species'] a") %>%
+  html_text2() %>%
+  str_squish() %>%
+  tibble(full_name = .) %>%
+  mutate(
+    binomial = str_extract(
+      full_name,
+      "^[A-Z][a-z]+\\s+[a-z][a-z-]*"
+    )
+  ) %>%
+  filter(!is.na(binomial)) %>%
+  distinct(binomial, .keep_all = TRUE) %>%
+  select(binomial)
 
-# Read the webpage
-url <- "https://avibase.bsc-eoc.org/checklist.jsp?region=IDij"
-page <- read_html("indonesianPapuaBirdsInventory.htm")
+pngFrogs <- pngFrogsBinomials %>%
+  mutate(
+    endemic = NA,
+    idn = NA,
+    png = 1
+  )
+
+# Relocate the new columns to their desired positions (e.g., after column 'A')
+pngFrogs <- pngFrogs %>%
+  relocate(endemic, idn, png, .after = binomial)
+
+ipFrogs <- ipFrogsBinomials %>%
+  mutate(
+    endemic = NA,
+    idn = 1,
+    png = NA
+  )
+
+# Relocate the new columns to their desired positions (e.g., after column 'A')
+ipFrogs <- ipFrogs %>%
+  relocate(endemic, idn, png, .after = binomial)
+
+# outer join of idpBirds and pngBirds
+ngFrogs <- full_join(ipFrogs, pngFrogs, by = "binomial") %>%
+  mutate(
+    idn = coalesce(idn.x, idn.y),
+    png = coalesce(png.x, png.y),
+    endemic = coalesce(endemic.x, endemic.y),
+    basionym_year = coalesce(basionym_year.x, basionym_year.y)
+  ) %>%
+  select(binomial, endemic, idn, png, basionym_year)
+
+ngFrogs$idn[is.na(ngFrogs$idn)] <- 0
+ngFrogs$png[is.na(ngFrogs$png)] <- 0
+ngFrogs$endemic = 0
+ngFrogs <- ngFrogs %>%
+  mutate(endemic = ifelse(binomial %in% endemicFrogsBinomials$binomial, 1, endemic))
+
+write.csv(ngFrogs,"checklists/ngFrogsChecklist.csv")
+
+
+
+## BIRDS 
+
+# Read webpages
+
+ngBirdsPage <- read_html("ng_birds_checklist_avibase.htm")
+pngBirdsPage <- read_html("png_birds_checklist_avibase.htm")
+ppBirdsPage <- read_html("papua_birds_checklist_avibase.htm")
+wpBirdsPage <- read_html("west_papua_birds_checklist_avibase.htm")
+
+rows <- html_elements(ngBirdsPage, "tr.highlight1")
+
+binomial <- rows %>%
+  html_element("td:nth-child(2) i") %>%
+  html_text2() %>%
+  str_squish()
+
+endemic <- rows %>%
+  html_element("td:nth-child(3)") %>%
+  html_text2() %>%
+  str_squish() %>%
+  str_detect(regex("\\bendemic\\b", ignore_case = TRUE)) %>%
+  as.integer()
+
+ngBirds <- tibble(
+  binomial = binomial,
+  endemic  = endemic
+) %>%
+  filter(!is.na(binomial), binomial != "")
 
 # Extract all italic text within the table (these are the binomials)
-binomials <- page %>%
+pngBinomials <- pngBirdsPage %>%
+  html_nodes("table.table i") %>%
+  html_text()
+ppBinomials <- ppBirdsPage %>%
+  html_nodes("table.table i") %>%
+  html_text()
+wpBinomials <- wpBirdsPage %>%
   html_nodes("table.table i") %>%
   html_text()
 
-# View the results
-print(binomials)
+ngBirds = data.frame(ngBinomials)
+ngBirds <- ngBirds %>%
+  rename(binomial = ngBinomials)
+pngBirds = data.frame(pngBinomials)
+pngBirds <- pngBirds %>%
+  rename(binomial = pngBinomials)
+ppBirds = data.frame(ppBinomials)
+ppBirds <- ppBirds %>%
+  rename(binomial = ppBinomials)
+wpBirds = data.frame(wpBinomials)
+wpBirds <- wpBirds %>%
+  rename(binomial = wpBinomials)
 
-# Optional: create a data frame with common names too
-bird_data <- page %>%
-  html_nodes("table.table tr.highlight1") %>%
-  lapply(function(row) {
-    common_name <- row %>% html_node("td:nth-child(1)") %>% html_text()
-    binomial <- row %>% html_node("i") %>% html_text()
-    data.frame(common_name = common_name, binomial = binomial)
-  }) %>%
-  bind_rows()
 
-# Combine PNG and IP birds
-pngBirds = read.csv("Papua-New-Guinea-Species.csv")
-pngBirds = pngBirds[,1:2]
-bird_data = bird_data %>% rename(CommonName = common_name)
-bird_data = bird_data %>% rename(ScientificName = binomial)
-ngBirds = rbind(bird_data,pngBirds)
-ngBirds = ngBirds %>%
-  distinct(ScientificName, .keep_all = TRUE)
+ngBirds <- ngBirds %>%
+  mutate(
+    idn = NA,
+    png = NA,
+    basionym_year = NA
+  )
 
-# Check names against HBW
+pngBirds <- pngBirds %>%
+  mutate(
+    endemic = NA,
+    idn = NA,
+    png = 1,
+    basionym_year = NA
+  )
 
-hbwList = read_excel("birdsTaxonomicChecklist.xlsx")
-ngBirdsFilt <- ngBirds %>%
-  filter(ngBirds[[2]] %in% hbwList[[8]])
+ppBirds <- ppBirds %>%
+  mutate(
+    endemic = NA,
+    idn = 1,
+    png = NA,
+    basionym_year = NA
+  )
 
-# Create a lookup from hbwList
-lookup <- hbwList[, c(8, 9)]
-names(lookup) <- c("ScientificName", "authority")
+wpBirds <- wpBirds %>%
+  mutate(
+    endemic = NA,
+    idn = 1,
+    png = NA,
+    basionym_year = NA
+  )
 
-# Join to ngBirdsFilt
-ngBirdsFilt <- ngBirdsFilt %>%
-  left_join(lookup, by = "ScientificName") %>%
-  mutate(year = str_extract(authority, "\\d{4}"))
+ipBirds <- bind_rows(wpBirds, ppBirds) %>%
+  distinct(binomial, .keep_all = TRUE)
 
-# Remove duplicates keeping the first occurrence
-ngBirdsFilt <- ngBirdsFilt %>%
-  distinct(ScientificName, .keep_all = TRUE)
 
-write.csv(ngBirdsFilt,"ngBirdsInventory.csv")
+
+# outer join of idpBirds and pngBirds
+ippngBirds <- full_join(ipBirds, pngBirds, by = "binomial") %>%
+  mutate(
+    idn = coalesce(idn.x, idn.y),
+    png = coalesce(png.x, png.y),
+    endemic = coalesce(endemic.x, endemic.y),
+    basionym_year = coalesce(basionym_year.x, basionym_year.y)
+  ) %>%
+  select(binomial, endemic, idn, png, basionym_year)
+
+ngChecklist <- ippngBirds %>%
+  filter(binomial %in% ngBirds$binomial) %>%
+  select(-endemic) %>%
+  left_join(ngBirds %>% select(binomial, endemic), by = "binomial") %>%
+  select(binomial, endemic, idn, png, basionym_year)
+
+ngChecklist$idn[is.na(ngChecklist$idn)] <- 0
+ngChecklist$png[is.na(ngChecklist$png)] <- 0
+
+hbwChecklist = read_excel("checklists/birdsTaxonomicChecklist.xlsx")
+
+ngChecklist <- ngChecklist %>%
+  inner_join(hbwChecklist %>% 
+               select(binomial = colnames(hbwChecklist)[8], 
+                      basionym_year_hbw = colnames(hbwChecklist)[9]), 
+             by = "binomial") %>%
+  mutate(basionym_year = coalesce(basionym_year_hbw, basionym_year)) %>%
+  select(binomial, endemic, idn, png, basionym_year)
+
+ngChecklist <- ngChecklist %>%
+  distinct(binomial, .keep_all = TRUE)
+
+ngChecklist <- ngChecklist %>%
+  mutate(basionym_year = as.numeric(gsub("[^0-9]", "", basionym_year)))
+
+write.csv(ngChecklist,"checklists/ngBirdsChecklist.csv")
