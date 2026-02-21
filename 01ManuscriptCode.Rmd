@@ -32,7 +32,9 @@ library(scales)
 library(colorspace)
 library(patchwork)
 library(cowplot)
-library(scales) 
+library(scales)
+library(svglite)
+
 
 
 
@@ -106,8 +108,46 @@ regionGrid <- regionPoly |>
 frogsChecklist = read.csv("checklists/ngFrogsChecklist.csv")
 birdsChecklist = read.csv("checklists/ngBirdsChecklist.csv")
 plantsChecklist = read.csv("checklists/ngPlantsChecklist.csv")
+mammalsChecklist = read.csv("checklists/ngMammalsChecklist.csv")
 
 ```
+
+# SPECIES CHECKLIST STATS
+
+```{r}
+
+# Frogs
+
+nFrogs = nrow(frogsChecklist)
+nPNGFrogs = sum(frogsChecklist$png)
+nIPFrogs = sum(frogsChecklist$idn)
+nEndemicFrogs = sum(frogsChecklist$ng_endemic)
+nEndemicPNGFrogs = sum(frogsChecklist$png_endemic)
+nEndemicIPFrogs = sum(frogsChecklist$ip_endemic)
+
+nPlants = nrow(plantsChecklist)
+nPNGPlants = sum(plantsChecklist$png)
+nIPPlants = sum(plantsChecklist$idn)
+nEndemicPlants = sum(plantsChecklist$ng_endemic)
+nEndemicPNGPlants = sum(plantsChecklist$png_endemic)
+nEndemicIPPlants = sum(plantsChecklist$ip_endemic)
+
+nBirds = nrow(birdsChecklist)
+nPNGBirds = sum(birdsChecklist$png)
+nIPBirds = sum(birdsChecklist$idn)
+nEndemicBirds = sum(birdsChecklist$ng_endemic)
+nEndemicPNGBirds = sum(birdsChecklist$png_endemic)
+nEndemicIPBirds = sum(birdsChecklist$ip_endemic)
+
+nMammals = nrow(mammalsChecklist)
+nPNGMammals = sum(mammalsChecklist$png)
+nIPMammals = sum(mammalsChecklist$idn)
+nEndemicMammals = sum(mammalsChecklist$ng_endemic)
+nEndemicPNGMammals = sum(mammalsChecklist$png_endemic)
+nEndemicIPMammals = sum(mammalsChecklist$ip_endemic)
+
+```
+
 
 # DOWNLOAD DATA
 
@@ -1718,7 +1758,7 @@ cat("Records removed by spatial filtering:",
     nrow(frogSEAsiaOcc2) - nrow(frogSEAsiaOcc2_5), "\n")
 
 
-# Step 5: Taxonomic filtering ----
+# Step 5a: Taxonomic filtering ----
 # Filter for species-level identifications and clean uncertain identifications
 frogSEAsiaOcc5 <- frogSEAsiaOcc2_5 %>%
   filter(
@@ -1728,6 +1768,13 @@ frogSEAsiaOcc5 <- frogSEAsiaOcc2_5 %>%
     !grepl("\\bsp\\.?$|\\bcf\\.?\\b|\\baff\\.?\\b", sp, ignore.case = TRUE)
     # Note: taxonRank column not available in simplified dataset
   )
+
+cat("After taxonomic filtering:", nrow(frogSEAsiaOcc5), "records remaining\n")
+
+# Step 5b: Taxonomic filtering ----
+# I find that step 5a retains some genus-only records, as the authority name is sometimes misplaced in the sp. column. Here I filter by code in taxonRank column, removing a row if it does not contan the code 'SPECIES'.
+frogSEAsiaOcc5 <- frogSEAsiaOcc5 %>%
+filter(taxonRank == "SPECIES")
 
 cat("After taxonomic filtering:", nrow(frogSEAsiaOcc5), "records remaining\n")
 
@@ -1833,7 +1880,7 @@ cat("Records removed by spatial filtering:",
     nrow(mammalSEAsiaOcc2) - nrow(mammalSEAsiaOcc2_5), "\n")
 
 
-# Step 5: Taxonomic filtering ----
+# Step 5a: Taxonomic filtering ----
 # Filter for species-level identifications and clean uncertain identifications
 mammalSEAsiaOcc5 <- mammalSEAsiaOcc2_5 %>%
   filter(
@@ -1843,6 +1890,11 @@ mammalSEAsiaOcc5 <- mammalSEAsiaOcc2_5 %>%
     !grepl("\\bsp\\.?$|\\bcf\\.?\\b|\\baff\\.?\\b", sp, ignore.case = TRUE)
     # Note: taxonRank column not available in simplified dataset
   )
+
+# Step 5b: Taxonomic filtering ----
+# I find that step 5a retains some genus-only records, as the authority name is sometimes misplaced in the sp. column. Here I filter by code in taxonRank column, removing a row if it does not contan the code 'SPECIES'.
+mammalSEAsiaOcc5 <- mammalSEAsiaOcc5 %>%
+filter(taxonRank == "SPECIES")
 
 cat("After taxonomic filtering:", nrow(mammalSEAsiaOcc5), "records remaining\n")
 
@@ -1948,7 +2000,7 @@ cat("Records removed by spatial filtering:",
     nrow(birdSEAsiaOcc2) - nrow(birdSEAsiaOcc2_5), "\n")
 
 
-# Step 5: Taxonomic filtering ----
+# Step 5a: Taxonomic filtering ----
 # Filter for species-level identifications and clean uncertain identifications
 birdSEAsiaOcc5 <- birdSEAsiaOcc2_5 %>%
   filter(
@@ -1960,6 +2012,11 @@ birdSEAsiaOcc5 <- birdSEAsiaOcc2_5 %>%
   )
 
 cat("After taxonomic filtering:", nrow(birdSEAsiaOcc5), "records remaining\n")
+
+# Step 5b: Taxonomic filtering ----
+# I find that step 5a retains some genus-only records, as the authority name is sometimes misplaced in the sp. column. Here I filter by code in taxonRank column, removing a row if it does not contan the code 'SPECIES'.
+birdSEAsiaOcc5 <- birdSEAsiaOcc5 %>%
+filter(taxonRank == "SPECIES")
 
 cat("Geographic filtering already completed during download phase\n")
 
@@ -2073,6 +2130,11 @@ squamateSEAsiaOcc5 <- squamateSEAsiaOcc2_5 %>%
     !grepl("\\bsp\\.?$|\\bcf\\.?\\b|\\baff\\.?\\b", sp, ignore.case = TRUE)
     # Note: taxonRank column not available in simplified dataset
   )
+
+# Step 5b: Taxonomic filtering ----
+# I find that step 5a retains some genus-only records, as the authority name is sometimes misplaced in the sp. column. Here I filter by code in taxonRank column, removing a row if it does not contan the code 'SPECIES'.
+squamateSEAsiaOcc5 <- squamateSEAsiaOcc5 %>%
+filter(taxonRank == "SPECIES")
 
 cat("After taxonomic filtering:", nrow(squamateSEAsiaOcc5), "records remaining\n")
 
@@ -2189,6 +2251,11 @@ plantSEAsiaOcc5 <- plantSEAsiaOcc2_5 %>%
     # Note: taxonRank column not available in simplified dataset
   )
 
+# Step 5b: Taxonomic filtering ----
+# I find that step 5a retains some genus-only records, as the authority name is sometimes misplaced in the sp. column. Here I filter by code in taxonRank column, removing a row if it does not contan the code 'SPECIES'.
+plantSEAsiaOcc5 <- plantSEAsiaOcc5 %>%
+filter(taxonRank == "SPECIES")
+
 cat("After taxonomic filtering:", nrow(plantSEAsiaOcc5), "records remaining\n")
 
 cat("Geographic filtering already completed during download phase\n")
@@ -2220,7 +2287,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 # Load cleaned occurrence data ----
 cat("Loading cleaned occurrence data...\n")
-frogSEAsiaOccData <- read_csv("cleaned_occ_data/frogsOccDatacleaned_20260108.csv")
+frogSEAsiaOccData <- read_csv("cleaned_occ_data/frogsOccDatacleaned_20260221.csv")
 
 cat("Loaded dataset:", nrow(frogSEAsiaOccData), "records\n")
 
@@ -2412,11 +2479,112 @@ cat("Dataset saved as:", output_filename, "\n")
 
 ```{r}
 
-load("input_dataframes/frogsData_20260201.RData")
+load("input_dataframes/frogsData_20260221.RData")
 load("input_dataframes/birdsData_20260201.RData")
 load("input_dataframes/mammalsData_20260201.RData")
 load("input_dataframes/plantsData_20260201.RData")
 load("input_dataframes/squamatesData_20260202.RData")
+
+
+```
+
+# GBIF SPECIES DATA
+
+```{r}
+
+GBIFFrogSpecies = frogSEAsiaCollXY %>%
+  distinct(gen, sp)
+
+nGBIFFrogSpecies = nrow(GBIFFrogSpecies)
+
+GBIFMammalSpecies = mammalSEAsiaCollXY %>%
+  distinct(gen, sp)
+
+nGBIFMammalSpecies = nrow(GBIFMammalSpecies)
+
+GBIFBirdSpecies = birdSEAsiaCollXY %>%
+  distinct(gen, sp)
+
+nGBIFBirdSpecies = nrow(GBIFBirdSpecies)
+
+GBIFPlantSpecies = plantSEAsiaCollXY %>%
+  distinct(gen, sp)
+
+nGBIFPlantSpecies = nrow(GBIFPlantSpecies)
+
+GBIFSquamateSpecies = squamateSEAsiaCollXY %>%
+  distinct(gen, sp)
+
+nGBIFSquamateSpecies = nrow(GBIFSquamateSpecies)
+
+
+
+```
+
+# SAMPLE SIZES AND ALPHA DIVERSITY ESTIMATE
+
+```{r}
+
+# frogs
+
+nOccFrogsNG = nrow(frogSEAsiaOccData)
+nOccFrogsIP = sum(frogSEAsiaOccData$countryCode == "ID")
+nOccFrogsPNG = sum(frogSEAsiaOccData$countryCode == "PG")
+nSpFrogs = nrow(unique(frogSEAsiaOccData[, c("gen", "sp")]))
+nSpFrogsIP = frogSEAsiaOccData %>%
+  filter(countryCode == "ID") %>%
+  distinct(gen, sp) %>%
+  nrow()
+nSpFrogsPNG = frogSEAsiaOccData %>%
+  filter(countryCode == "PG") %>%
+  distinct(gen, sp) %>%
+  nrow()
+
+
+# terrestrial non-volant mammals
+
+nOccMammalsNG = nrow(mammalSEAsiaOccData)
+nOccMammalsIP = sum(mammalSEAsiaOccData$countryCode == "ID")
+nOccMammalsPNG = sum(mammalSEAsiaOccData$countryCode == "PG")
+nSpMammals = nrow(unique(mammalSEAsiaOccData[, c("gen", "sp")]))
+nSpMammalsIP = mammalSEAsiaOccData %>%
+  filter(countryCode == "ID") %>%
+  distinct(gen, sp) %>%
+  nrow()
+nSpMammalsPNG = mammalSEAsiaOccData %>%
+  filter(countryCode == "PG") %>%
+  distinct(gen, sp) %>%
+  nrow()
+
+# birds
+
+nOccBirdsNG = nrow(birdSEAsiaOccData)
+nOccBirdsIP = sum(birdSEAsiaOccData$countryCode == "ID")
+nOccBirdsPNG = sum(birdSEAsiaOccData$countryCode == "PG")
+nSpBirds = nrow(unique(birdSEAsiaOccData[, c("gen", "sp")]))
+nSpBirdsIP = birdSEAsiaOccData %>%
+  filter(countryCode == "ID") %>%
+  distinct(gen, sp) %>%
+  nrow()
+nSpBirdsPNG = birdSEAsiaOccData %>%
+  filter(countryCode == "PG") %>%
+  distinct(gen, sp) %>%
+  nrow()
+# vascular plants
+
+nOccPlantsNG = nrow(plantSEAsiaOccData)
+nOccPlantsIP = sum(plantSEAsiaOccData$countryCode == "ID")
+nOccPlantsPNG = sum(plantSEAsiaOccData$countryCode == "PG")
+nSpPlants = nrow(unique(plantSEAsiaOccData[, c("gen", "sp")]))
+nSpPlantsIP = plantSEAsiaOccData %>%
+  filter(countryCode == "ID") %>%
+  distinct(gen, sp) %>%
+  nrow()
+nSpPlantsPNG = plantSEAsiaOccData %>%
+  filter(countryCode == "PG") %>%
+  distinct(gen, sp) %>%
+  nrow()
+
 
 
 ```
@@ -2475,7 +2643,7 @@ geom_sf(data = frogsCollRaster_binned, aes(fill = collection_bin), color = NA) +
     drop   = FALSE,
     guide_legend(override.aes = list(fill = frog_pal))
   ) +
-    geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
+    geom_sf(data = regionPoly, fill = NA, colour = "grey60",linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
   coord_sf() +
   theme(
@@ -2522,8 +2690,6 @@ density_table <- counts %>%
 ### Mammals
 
 ```{r}
-
-load("input_dataframes/mammalsData_20260201.RData")
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
 bin_levels <- c("0","1–25","26–100","101–500")
@@ -2931,13 +3097,13 @@ frogsAlpha <- regionGrid |>
   )
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
-frogs_binsAlpha <- c("0","1-10","11–20","21–30","31–40","41–50")
+frogs_binsAlpha <- c("0","1–10","11–30","31–50")
 
 # Bin + lock factor levels
 frogsAlphaBinned <- frogsAlpha %>%
   mutate(collection_bin = cut(
     alpha,
-    breaks = c(-Inf, 0, 10, 20, 30, 40, 50),
+    breaks = c(-Inf, 0, 10, 30, 50),
     labels = frogs_binsAlpha,
     include.lowest = TRUE, right = TRUE
   )) %>%
@@ -2947,11 +3113,8 @@ frogsAlphaBinned <- frogsAlpha %>%
 frogs_palAlpha <- c(
   "0" = "#000000",
   "1–10"      = "#3D3D00",
-  "11–20"    = "#666600",
-  "21–30"   = "#8C8C00",
-  "31–40"  = "#B3B300",
-  "41–50" = "#D9D900"
-  )
+  "11–30"    = "#666600",
+  "31–50"   = "#8C8C00")
 
 
 frogsAlphaPlot <-
@@ -2983,7 +3146,7 @@ geom_sf(data = frogsAlphaBinned, aes(fill = collection_bin), color = NA) +
   )
 
 ggsave(
-  filename = "frogAlphaMap.png",  # file name and extension
+  filename = "frogAlphaMap.svg",  # file name and extension
   plot     = frogsAlphaPlot,       # your ggplot object
   width    = 8,                          # width in inches (adjust as needed)
   height   = 6,                          # height in inches (adjust as needed)
@@ -3009,14 +3172,13 @@ mammalAlpha <- regionGrid |>
   )
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
-binsAlpha <- c("0","1-10","11–20","21–30","31–40","41–50",
-                "51–60",">60")
+binsAlpha <- c("0","1–10","11–30","31–50","51–100")
 
 # Bin + lock factor levels
 mammalAlphaBinned <- mammalAlpha %>%
   mutate(collection_bin = cut(
     alpha,
-    breaks = c(-Inf, 0, 10, 20, 30, 40, 50, 60, Inf),
+    breaks = c(-Inf, 0, 10, 30, 50, 100),
     labels = binsAlpha,
     include.lowest = TRUE, right = TRUE
   )) %>%
@@ -3026,13 +3188,9 @@ mammalAlphaBinned <- mammalAlpha %>%
 palAlpha <- c(
   "0" = "#000000",
   "1–10"      = "#3D3D00",
-  "11–20"    = "#666600",
-  "21–30"   = "#8C8C00",
-  "31–40"  = "#B3B300",
-  "41–50" = "#D9D900",
-  "51–60" = "#FFFF00",
-  ">60"     = "#FFFF66"
-)
+  "11–30"    = "#666600",
+  "31–50"   = "#8C8C00",
+  "51–100"  = "#B3B300")
 
 mammalAlphaPlot <-
   ggplot() +
@@ -3046,7 +3204,7 @@ geom_sf(data = mammalAlphaBinned, aes(fill = collection_bin), color = NA) +
     values = palAlpha,
     limits = binsAlpha,   # force order & inclusion
     drop   = FALSE,
-    guide_legend(override.aes = list(fill = pal))
+    guide_legend(override.aes = list(fill = palAlpha))
   ) +
     geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
@@ -3064,7 +3222,7 @@ geom_sf(data = mammalAlphaBinned, aes(fill = collection_bin), color = NA) +
 mammalAlphaPlot
 
 ggsave(
-  filename = "mammalAlphaMap.png",  # file name and extension
+  filename = "mammalAlphaMap.svg",  # file name and extension
   plot     = mammalAlphaPlot,       # your ggplot object
   width    = 8,                          # width in inches (adjust as needed)
   height   = 6,                          # height in inches (adjust as needed)
@@ -3090,14 +3248,13 @@ birdAlpha <- regionGrid |>
   )
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
-binsAlpha <- c("0","1-10","11–20","21–30","31–40","41–50",
-                "51–60",">60")
+binsAlpha <- c("0","1–10","11–30","31–50","51–100","101–150","151–200",">200")
 
 # Bin + lock factor levels
 birdAlphaBinned <- birdAlpha %>%
   mutate(collection_bin = cut(
     alpha,
-    breaks = c(-Inf, 0, 10, 20, 30, 40, 50, 60, Inf),
+    breaks = c(-Inf, 0, 10, 30, 50, 100, 150, 200, Inf),
     labels = binsAlpha,
     include.lowest = TRUE, right = TRUE
   )) %>%
@@ -3107,12 +3264,12 @@ birdAlphaBinned <- birdAlpha %>%
 palAlpha <- c(
   "0" = "#000000",
   "1–10"      = "#3D3D00",
-  "11–20"    = "#666600",
-  "21–30"   = "#8C8C00",
-  "31–40"  = "#B3B300",
-  "41–50" = "#D9D900",
-  "51–60" = "#FFFF00",
-  ">60"     = "#FFFF66"
+  "11–30"    = "#666600",
+  "31–50"   = "#8C8C00",
+  "51–100"  = "#B3B300",
+  "101–150" = "#D9D900",
+  "151–200" = "#FFFF00",
+  ">200"     = "#FFFF66"
 )
 
 birdAlphaPlot <-
@@ -3127,7 +3284,7 @@ geom_sf(data = birdAlphaBinned, aes(fill = collection_bin), color = NA) +
     values = palAlpha,
     limits = binsAlpha,   # force order & inclusion
     drop   = FALSE,
-    guide_legend(override.aes = list(fill = pal))
+    guide_legend(override.aes = list(fill = palAlpha))
   ) +
     geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
@@ -3145,7 +3302,7 @@ geom_sf(data = birdAlphaBinned, aes(fill = collection_bin), color = NA) +
 birdAlphaPlot
 
 ggsave(
-  filename = "birdAlphaMap.png",  # file name and extension
+  filename = "birdAlphaMap.svg",  # file name and extension
   plot     = birdAlphaPlot,       # your ggplot object
   width    = 8,                          # width in inches (adjust as needed)
   height   = 6,                          # height in inches (adjust as needed)
@@ -3171,14 +3328,13 @@ squamateAlpha <- regionGrid |>
   )
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
-binsAlpha <- c("0","1-10","11–20","21–30","31–40","41–50",
-                "51–60",">60")
+binsAlpha <- c("0","1–10","11–30","31–50","51–100")
 
 # Bin + lock factor levels
 squamateAlphaBinned <- squamateAlpha %>%
   mutate(collection_bin = cut(
     alpha,
-    breaks = c(-Inf, 0, 10, 20, 30, 40, 50, 60, Inf),
+    breaks = c(-Inf, 0, 10, 30, 50, 100),
     labels = binsAlpha,
     include.lowest = TRUE, right = TRUE
   )) %>%
@@ -3188,13 +3344,9 @@ squamateAlphaBinned <- squamateAlpha %>%
 palAlpha <- c(
   "0" = "#000000",
   "1–10"      = "#3D3D00",
-  "11–20"    = "#666600",
-  "21–30"   = "#8C8C00",
-  "31–40"  = "#B3B300",
-  "41–50" = "#D9D900",
-  "51–60" = "#FFFF00",
-  ">60"     = "#FFFF66"
-)
+  "11–30"    = "#666600",
+  "31–50"   = "#8C8C00",
+  "51–100"  = "#B3B300")
 
 squamateAlphaPlot <-
   ggplot() +
@@ -3208,7 +3360,7 @@ geom_sf(data = squamateAlphaBinned, aes(fill = collection_bin), color = NA) +
     values = palAlpha,
     limits = binsAlpha,   # force order & inclusion
     drop   = FALSE,
-    guide_legend(override.aes = list(fill = pal))
+    guide_legend(override.aes = list(fill = palAlpha))
   ) +
     geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
@@ -3252,14 +3404,13 @@ plantAlpha <- regionGrid |>
   )
 
 # Define levels once and reuse everywhere (avoids dash/typo mismatches)
-binsAlpha <- c("0","1-10","11–20","21–30","31–40","41–50",
-                "51–60",">60")
+binsAlpha <- c("0","1–10","11–30","31–50","51–100","101–150","151–200",">200")
 
 # Bin + lock factor levels
 plantAlphaBinned <- plantAlpha %>%
   mutate(collection_bin = cut(
     alpha,
-    breaks = c(-Inf, 0, 10, 20, 30, 40, 50, 60, Inf),
+    breaks = c(-Inf, 0, 10, 30, 50, 100, 150, 200, Inf),
     labels = binsAlpha,
     include.lowest = TRUE, right = TRUE
   )) %>%
@@ -3269,12 +3420,12 @@ plantAlphaBinned <- plantAlpha %>%
 palAlpha <- c(
   "0" = "#000000",
   "1–10"      = "#3D3D00",
-  "11–20"    = "#666600",
-  "21–30"   = "#8C8C00",
-  "31–40"  = "#B3B300",
-  "41–50" = "#D9D900",
-  "51–60" = "#FFFF00",
-  ">60"     = "#FFFF66"
+  "11–30"    = "#666600",
+  "31–50"   = "#8C8C00",
+  "51–100"  = "#B3B300",
+  "101–150" = "#D9D900",
+  "151–200" = "#FFFF00",
+  ">200"     = "#FFFF66"
 )
 
 plantAlphaPlot <-
@@ -3289,7 +3440,7 @@ geom_sf(data = plantAlphaBinned, aes(fill = collection_bin), color = NA) +
     values = palAlpha,
     limits = binsAlpha,   # force order & inclusion
     drop   = FALSE,
-    guide_legend(override.aes = list(fill = pal))
+    guide_legend(override.aes = list(fill = palAlpha))
   ) +
     geom_sf(data = regionPoly, fill = NA, colour = "grey60", linewidth = 0.2) +
   #geom_sf(data = borders_clip, color = "grey60", linewidth = 0.2) +
@@ -3307,7 +3458,7 @@ geom_sf(data = plantAlphaBinned, aes(fill = collection_bin), color = NA) +
 plantAlphaPlot
 
 ggsave(
-  filename = "plantAlphaMap.png",  # file name and extension
+  filename = "plantAlphaMap.svg",  # file name and extension
   plot     = plantAlphaPlot,       # your ggplot object
   width    = 8,                          # width in inches (adjust as needed)
   height   = 6,                          # height in inches (adjust as needed)
@@ -3843,29 +3994,29 @@ geom_blank(
   theme_minimal() +
   coord_cartesian(expand = FALSE) +
 
-  theme(
+  theme(aspect.ratio = 85 / 155,
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.line        = element_line(color = "grey80"),
     axis.ticks       = element_line(color = "grey80"),
-    legend.position  = c(0.05, 0.6),
-    legend.justification = c(0, 0.5),
-    legend.background = element_blank()
+    legend.position  = "none"
+    #legend.justification = c(0, 0.5),
+    #legend.background = element_blank()
   )
 
 frogDescYrsPlot
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "frogDescYrs_", date_stamp, ".png")
+output_filename <- paste0(getwd(),"/figures/", "frogDescYrs_", date_stamp, ".svg")
 
 ggsave(
-  filename = output_filename,  # file name and extension
-  plot     = frogDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
-  units    = "in",                        # units for width/height
-  dpi      = 300                          # resolution; affects rasterized elements
+  filename = "frogDescriptions.svg",
+  plot     = frogDescYrsPlot,
+  device   = svglite::svglite,
+  width    = 7.75,
+  height   = 4.25,
+  units    = "in"
 )
 
 ```
@@ -4022,27 +4173,27 @@ geom_blank(
   theme_minimal() +
   coord_cartesian(expand = FALSE) +
 
-  theme(
+  theme(aspect.ratio = 85 / 155,
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.line        = element_line(color = "grey80"),
     axis.ticks       = element_line(color = "grey80"),
-    legend.position  = c(0.05, 0.6),
-    legend.justification = c(0, 0.5),
-    legend.background = element_blank()
+    legend.position  = "none"
+    #legend.justification = c(0, 0.5),
+    #legend.background = element_blank()
   )
 
 birdDescYrsPlot
 
 # Generate date stamp and save cleaned dataset ----
 date_stamp <- format(Sys.Date(), "%Y%m%d")
-output_filename <- paste0(getwd(),"/figures/", "birdDescYrs_", date_stamp, ".png")
+output_filename <- paste0(getwd(),"/figures/", "birdDescYrsTest_", date_stamp, ".svg")
 
 ggsave(
-  filename = output_filename,  # file name and extension
+  filename = "birdDescriptions.svg",  # file name and extension
   plot     = birdDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
+  width    = 7.75,
+  height   = 4.25,
   units    = "in",                        # units for width/height
   dpi      = 300                          # resolution; affects rasterized elements
 )
@@ -4200,14 +4351,14 @@ geom_blank(
   theme_minimal() +
   coord_cartesian(expand = FALSE) +
 
-  theme(
+  theme(aspect.ratio = 85 / 155,
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.line        = element_line(color = "grey80"),
     axis.ticks       = element_line(color = "grey80"),
-    legend.position  = c(0.05, 0.6),
-    legend.justification = c(0, 0.5),
-    legend.background = element_blank()
+    legend.position  = "none"
+    #legend.justification = c(0, 0.5),
+    #legend.background = element_blank()
   )
 
 mammalDescYrsPlot
@@ -4217,10 +4368,10 @@ date_stamp <- format(Sys.Date(), "%Y%m%d")
 output_filename <- paste0(getwd(),"/figures/", "mammalDescYrs_", date_stamp, ".png")
 
 ggsave(
-  filename = output_filename,  # file name and extension
+  filename = "mammalDescriptions.svg",  # file name and extension
   plot     = mammalDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
+  width    = 7.75,
+  height   = 4.25,
   units    = "in",                        # units for width/height
   dpi      = 300                          # resolution; affects rasterized elements
 )
@@ -4378,14 +4529,14 @@ geom_blank(
   theme_minimal() +
   coord_cartesian(expand = FALSE) +
 
-  theme(
+  theme(aspect.ratio = 85 / 155,
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.line        = element_line(color = "grey80"),
     axis.ticks       = element_line(color = "grey80"),
-    legend.position  = c(0.05, 0.6),
-    legend.justification = c(0, 0.5),
-    legend.background = element_blank()
+    legend.position  = "none"
+    #legend.justification = c(0, 0.5),
+    #legend.background = element_blank()
   )
 
 plantDescYrsPlot
@@ -4395,10 +4546,10 @@ date_stamp <- format(Sys.Date(), "%Y%m%d")
 output_filename <- paste0(getwd(),"/figures/", "plantDescYrs_", date_stamp, ".png")
 
 ggsave(
-  filename = output_filename,  # file name and extension
+  filename = "plantDescriptions.svg",  # file name and extension
   plot     = plantDescYrsPlot,       # your ggplot object
-  width    = 8,                          # width in inches (adjust as needed)
-  height   = 6,                          # height in inches (adjust as needed)
+  width    = 7.75,
+  height   = 4.25,
   units    = "in",                        # units for width/height
   dpi      = 300                          # resolution; affects rasterized elements
 )
