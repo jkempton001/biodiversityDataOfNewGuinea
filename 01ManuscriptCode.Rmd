@@ -2330,7 +2330,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 # Load cleaned occurrence data ----
 cat("Loading cleaned occurrence data...\n")
-mammalSEAsiaOccData <- read_csv("cleaned_occ_data/mammalsOccDatacleaned_20260108.csv")
+mammalSEAsiaOccData <- read_csv("cleaned_occ_data/mammalsOccDatacleaned_20260221.csv")
 
 cat("Loaded dataset:", nrow(mammalSEAsiaOccData), "records\n")
 
@@ -2369,7 +2369,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 # Load cleaned occurrence data ----
 cat("Loading cleaned occurrence data...\n")
-birdSEAsiaOccData <- read_csv("cleaned_occ_data/birdsOccDatacleaned_20260108.csv")
+birdSEAsiaOccData <- read_csv("cleaned_occ_data/birdsOccDatacleaned_20260221.csv")
 
 # species and lat long data
 birdSEAsiaCollXY <- birdSEAsiaOccData %>%
@@ -2405,7 +2405,7 @@ cat("Dataset saved as:", output_filename, "\n")
 ```{r}
 # Load cleaned occurrence data ----
 cat("Loading cleaned occurrence data...\n")
-squamateSEAsiaOccData <- read_csv("cleaned_occ_data/squamatesOccDatacleaned_20260108.csv")
+squamateSEAsiaOccData <- read_csv("cleaned_occ_data/squamatesOccDatacleaned_20260221.csv")
 
 # species and lat long data
 squamateSEAsiaCollXY <- squamateSEAsiaOccData %>%
@@ -2443,7 +2443,7 @@ cat("Dataset saved as:", output_filename, "\n")
 
 # Load cleaned occurrence data ----
 cat("Loading cleaned occurrence data...\n")
-plantSEAsiaOccData <- read_csv("cleaned_occ_data/plantsOccDatacleaned_20260108.csv")
+plantSEAsiaOccData <- read_csv("cleaned_occ_data/plantsOccDatacleaned_20260221.csv")
 
 # species and lat long data
 plantSEAsiaCollXY <- plantSEAsiaOccData %>%
@@ -2480,10 +2480,10 @@ cat("Dataset saved as:", output_filename, "\n")
 ```{r}
 
 load("input_dataframes/frogsData_20260221.RData")
-load("input_dataframes/birdsData_20260201.RData")
-load("input_dataframes/mammalsData_20260201.RData")
-load("input_dataframes/plantsData_20260201.RData")
-load("input_dataframes/squamatesData_20260202.RData")
+load("input_dataframes/birdsData_20260222.RData")
+load("input_dataframes/mammalsData_20260222.RData")
+load("input_dataframes/plantsData_20260222.RData")
+load("input_dataframes/squamatesData_20260222.RData")
 
 
 ```
